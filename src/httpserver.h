@@ -57,6 +57,7 @@ public:
   void Trim(std::string& str);
   void SetErrCode(int status_code, HttpResponse* res);
   int SendFile(int file_fd, TCPConnection* conn);
+  std::string GetContentType(const std::string& path);
 
 private:
   std::unique_ptr<ThreadPool> threadpool_;

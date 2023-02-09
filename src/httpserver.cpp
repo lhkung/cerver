@@ -79,6 +79,7 @@ void HttpServer::ThreadLoop(int comm_fd) {
 }
 
 bool HttpServer::ParseRequest(string& header, HttpRequest* req) {
+  // std::cerr << header << std::endl;
   vector<string> lines;
   int num_lines = Split(header, "\r\n", &lines);
   if (num_lines < 1) {
@@ -110,26 +111,27 @@ void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
     SetErrCode(405, res);
     return;
   }
-  if (req.uri_ != "/") {
-    SetErrCode(404, res);
-    return;
-  }
   if (req.protocol_ != "http/1.1") {
     SetErrCode(505, res);
     return;
   }
-  res->protocol_ = "HTTP/1.1";
-  res->status_code_ = 200;
-  res->reason_phrase_ = "OK";
-  res->AddHeader("Content-Type", "text/html");
-  res->has_file_ = true;
-  string path = directory_ + "/test.html";
+  string path;
+  if (req.uri_ == "/") {
+     path = directory_ + "/index.html";
+  } else {
+    path = directory_ + "/" + req.uri_;
+  }
   int file = open(path.c_str(), O_RDONLY);
   if (file == -1) {
     std::cout << strerror(errno) << std::endl;
     SetErrCode(404, res);
     return;
   }
+  res->protocol_ = "HTTP/1.1";
+  res->status_code_ = 200;
+  res->reason_phrase_ = "OK";
+  res->AddHeader("Content-Type", GetContentType(path));
+  res->has_file_ = true;
   off_t size = lseek(file, 0, SEEK_END);
   close(file);
   res->file_ = path;
@@ -153,6 +155,40 @@ void HttpServer::SendResponse(const HttpResponse& res, TCPConnection* conn) {
   }
 }
 
+string HttpServer::GetContentType(const string& path) {
+  string ext = ""; 
+  for (int i = path.length() - 1; i >= 0; i--) {
+    ext += path[i];
+    if (path[i] == '.') {
+      break;
+    }
+  }
+  int l = 0;
+  int r = ext.length() - 1;
+  while (l < r) {
+    char temp = ext[l];
+    ext[l] = ext[r];
+    ext[r] = temp;
+    l++;
+    r--;
+  }
+  if (ext == ".jpeg") {
+    return "image/jpeg";
+  }
+  if (ext == ".png") {
+    return "image/png";
+  }
+  if (ext == ".jpg") {
+    return "image/jpg";
+  }
+  if (ext == ".html") {
+    return "text/html";
+  }
+  if (ext == ".css") {
+    return "text/css";
+  }
+  return "text/plain";
+}
 void HttpServer::SetErrCode(int err_code, HttpResponse* res) {
   res->protocol_ = "HTTP/1.1";
   auto it = err_codes.find(err_code);
