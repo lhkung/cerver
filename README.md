@@ -6,4 +6,4 @@ The server uses a thread pool to handle incoming http connections.
 
 All C++ program is written in compliance with RAII paradigm.
 
-I like pure code. Simple and elegant.
+I like pure C++. Simple and elegant.
