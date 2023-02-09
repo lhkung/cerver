@@ -3,6 +3,8 @@
 #include <fcntl.h>
 #include "httpserver.h"
 
+#define DATA_BATCH 4194304 // 4 MB
+
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -246,14 +248,15 @@ int HttpServer::SendFile(int file_fd, TCPConnection* conn) {
   if (file_fd == -1) {
     return -1;
   }
-  char buf[4096];
+  char* buf = new char[DATA_BATCH];
   int total_bytes = 0;
-  ssize_t bytes_read = read(file_fd, buf, 4096);
+  ssize_t bytes_read = read(file_fd, buf, DATA_BATCH);
   while (bytes_read > 0) {
     conn->Send(string(buf, bytes_read));
     total_bytes += bytes_read;
-    bytes_read = read(file_fd, buf, 4096);
+    bytes_read = read(file_fd, buf, DATA_BATCH);
   }
+  delete[] buf;
   return total_bytes;
 }
 
