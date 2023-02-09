@@ -281,15 +281,21 @@ void HttpServerTask::Run() {
 int main(int argc, char** argv) {
   if (argc < 3) {
     std::cerr << "./httpserver <port> <directory>" << std::endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   string port_arg = string(argv[1]);
   if (!WebServer::IsNumber(port_arg)) {
     std::cerr << "./httpserver <port> <directory>" << std::endl;
-    return 1;
+    return EXIT_FAILURE;
   }
   int port = std::atoi(argv[1]);
-  unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port, string(argv[2]));
-  server->Run();
-  return 0;
+  pid_t pid = fork();
+  if (pid == 0) {
+    unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port, string(argv[2]));
+    server->Run();
+    exit(EXIT_SUCCESS);
+  }
+  std::cout << "httpserver is running, listenting to port " << port << "." << std::endl;
+  std::cout << "pid = " << pid << std::endl;
+  return EXIT_SUCCESS;
 }
