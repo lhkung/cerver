@@ -16,7 +16,7 @@ static void HandleSigint(int signum) {
 
 static unordered_map<int, string> err_codes = {{404, "Not Found"},
                                                {405, "Method Not Allowed"},
-                                               {505, "HTTP Version not supported"},};
+                                               {505, "HTTP Version not supported"}};
 
 HttpServer::HttpServer()
   : threadpool_(std::make_unique<ThreadPool>(100)), listen_port_(8000) { }
