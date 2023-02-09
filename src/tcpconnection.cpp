@@ -22,7 +22,7 @@ int TCPConnection::Connect(const string& addr, int port) {
     return -1;
   }
   struct sockaddr_in servaddr;
-  bzero(&servaddr, sizeof(servaddr));
+  memset(&servaddr, 0, sizeof(sockaddr_in));
   servaddr.sin_family = AF_INET;
   servaddr.sin_port = htons(port);
   inet_pton(AF_INET, addr.c_str(), &(servaddr.sin_addr));

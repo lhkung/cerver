@@ -10,6 +10,39 @@ using std::unordered_map;
 
 namespace WebServer {
 
+static void LowerCase(string& str) {
+  for (int i = 0; i < str.length(); i++) {
+    if (str[i] >= 'A' && str[i] <= 'Z') {
+      str[i] = static_cast<char>(str[i] + 32);
+    }
+  }
+}
+
+static void Trim(string& str) {
+  int start = 0;
+  int end = str.length() - 1;
+  while (str[start] == ' ') {
+    start++;
+  }
+  while (str[end] == ' ') {
+    end--;
+  }
+  str = str.substr(start, end + 1);
+}
+
+static int Split(string& str, const string& delim, vector<string>* out) {
+  size_t index = str.find(delim);
+  while (index != string::npos) {
+    out->push_back(str.substr(0, index));
+    str = str.substr(index + delim.length());
+    index = str.find(delim);
+  }
+  if (str.length() != 0) {
+    out->push_back(str);
+  }
+  return out->size();
+}
+
 static void HandleSigint(int signum) {
 
 }
@@ -209,39 +242,6 @@ void HttpServer::SetErrCode(int err_code, HttpResponse* res) {
   res->body_ = res->reason_phrase_;
 }
 
-int HttpServer::Split(string& str, const string& delim, vector<string>* out) {
-  size_t index = str.find(delim);
-  while (index != string::npos) {
-    out->push_back(str.substr(0, index));
-    str = str.substr(index + delim.length());
-    index = str.find(delim);
-  }
-  if (str.length() != 0) {
-    out->push_back(str);
-  }
-  return out->size();
-}
-
-void HttpServer::LowerCase(string& str) {
-  for (int i = 0; i < str.length(); i++) {
-    if (str[i] >= 'A' && str[i] <= 'Z') {
-      str[i] = static_cast<char>(str[i] + 32);
-    }
-  }
-}
-
-void HttpServer::Trim(string& str) {
-  int start = 0;
-  int end = str.length() - 1;
-  while (str[start] == ' ') {
-    start++;
-  }
-  while (str[end] == ' ') {
-    end--;
-  }
-  str = str.substr(start, end + 1);
-}
-
 int HttpServer::SendFile(int file_fd, TCPConnection* conn) {
   if (file_fd == -1) {
     return -1;
@@ -257,6 +257,15 @@ int HttpServer::SendFile(int file_fd, TCPConnection* conn) {
   return total_bytes;
 }
 
+static bool IsNumber(const string& str) {
+  for (int i = 0; i < str.length(); i++) {
+    if (str[i] < '0' || str[i] > '9') {
+      return false;
+    }
+  }
+  return true;
+}
+
 HttpServerTask::HttpServerTask(int comm_fd, HttpServer* server) 
   : comm_fd_(comm_fd), server_(server) { }
 HttpServerTask::~HttpServerTask() { }
@@ -267,11 +276,17 @@ void HttpServerTask::Run() {
 } // end namespace WebServer
 
 int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::cerr << "./httpserver <directory>" << std::endl;
+  if (argc < 3) {
+    std::cerr << "./httpserver <port> <directory>" << std::endl;
     return 1;
   }
-  unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, 8000, string(argv[1]));
+  string port_arg = string(argv[1]);
+  if (!WebServer::IsNumber(port_arg)) {
+    std::cerr << "./httpserver <port> <directory>" << std::endl;
+    return 1;
+  }
+  int port = std::atoi(argv[1]);
+  unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port, string(argv[2]));
   server->Run();
   return 0;
 }

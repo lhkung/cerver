@@ -17,7 +17,7 @@ int Server::CreateListenSocket(int port, int queue_capacity) {
   int opt = 1;
   setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR|SO_REUSEPORT, &opt, sizeof(opt));
   struct sockaddr_in servaddr;
-  bzero(&servaddr, sizeof(servaddr));
+  memset(&servaddr, 0, sizeof(sockaddr_in));
   servaddr.sin_family = AF_INET;
   servaddr.sin_addr.s_addr = htons(INADDR_ANY);
   servaddr.sin_port = htons(port);

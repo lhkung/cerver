@@ -52,9 +52,6 @@ public:
   bool ParseRequest(std::string& header, HttpRequest* req);
   void ProcessRequest(const HttpRequest& req, HttpResponse* res);
   void SendResponse(const HttpResponse& res, TCPConnection* conn);
-  int Split(std::string& str, const std::string& delim, std::vector<std::string>* out);
-  void LowerCase(std::string& str);
-  void Trim(std::string& str);
   void SetErrCode(int status_code, HttpResponse* res);
   int SendFile(int file_fd, TCPConnection* conn);
   std::string GetContentType(const std::string& path);
