@@ -73,7 +73,6 @@ public:
   void Run() override;
   int comm_fd_;
   HttpServer* server_;
-
 };
 
 } // end namespace WebServer
