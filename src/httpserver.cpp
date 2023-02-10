@@ -7,6 +7,7 @@
 
 using std::string;
 using std::unique_ptr;
+using std::shared_ptr;
 using std::vector;
 using std::unordered_map;
 
@@ -43,6 +44,15 @@ static int Split(string& str, const string& delim, vector<string>* out) {
     out->push_back(str);
   }
   return out->size();
+}
+
+static bool IsNumber(const string& str) {
+  for (int i = 0; i < str.length(); i++) {
+    if (str[i] < '0' || str[i] > '9') {
+      return false;
+    }
+  }
+  return true;
 }
 
 static void HandleSigint(int signum) {
@@ -114,7 +124,6 @@ void HttpServer::ThreadLoop(int comm_fd) {
 }
 
 bool HttpServer::ParseRequest(string& header, HttpRequest* req) {
-  // std::cerr << header << std::endl;
   vector<string> lines;
   int num_lines = Split(header, "\r\n", &lines);
   if (num_lines < 1) {
@@ -260,15 +269,6 @@ int HttpServer::SendFile(int file_fd, TCPConnection* conn) {
   return total_bytes;
 }
 
-static bool IsNumber(const string& str) {
-  for (int i = 0; i < str.length(); i++) {
-    if (str[i] < '0' || str[i] > '9') {
-      return false;
-    }
-  }
-  return true;
-}
-
 HttpServerTask::HttpServerTask(int comm_fd, HttpServer* server) 
   : comm_fd_(comm_fd), server_(server) { }
 HttpServerTask::~HttpServerTask() { }
@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
   int port = std::atoi(argv[1]);
   pid_t pid = fork();
   if (pid == 0) {
-    unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port, string(argv[2]));
+    shared_ptr<WebServer::Server> server = std::make_shared<WebServer::HttpServer>(32, port, string(argv[2]));
     server->Run();
     exit(EXIT_SUCCESS);
   }
