@@ -106,7 +106,7 @@ void HttpServer::Run() {
     threadpool_->Dispatch(std::move(task));
   }
   threadpool_->KillThreads();
-  std::cerr << "Server shut down." << std::endl;
+  std::cerr << "Server shut down" << std::endl;
 }
 
 
