@@ -45,31 +45,29 @@ class HttpServer : public Server {
 
 public:
   HttpServer();
-  HttpServer(int max_thread, int listen_port, const std::string& directory);
+  HttpServer(int max_thread, int listen_port);
   virtual ~HttpServer();
   void Run() override;
-  void ThreadLoop(int comm_fd);
-  bool ParseRequest(std::string& header, HttpRequest* req);
-  void ProcessRequest(const HttpRequest& req, HttpResponse* res);
-  void SendResponse(const HttpResponse& res, TCPConnection* conn);
-  void SetErrCode(int status_code, HttpResponse* res);
-  int SendFile(int file_fd, TCPConnection* conn);
-  std::string GetContentType(const std::string& path);
+  // void ThreadLoop(int comm_fd);
+  // bool ParseRequest(std::string& header, HttpRequest* req);
+  // void ProcessRequest(const HttpRequest& req, HttpResponse* res);
+  // void SendResponse(const HttpResponse& res, TCPConnection* conn);
+  // void SetErrCode(int status_code, HttpResponse* res);
+  // int SendFile(int file_fd, TCPConnection* conn);
+  // std::string GetContentType(const std::string& path);
 
 private:
   std::unique_ptr<ThreadPool> threadpool_;
   int listen_port_;
-  std::string directory_;
 };
 
 class HttpServerTask : public ThreadPool::Task {
 
 public:
-  explicit HttpServerTask(int comm_fd, HttpServer* server);
+  explicit HttpServerTask(int comm_fd);
   virtual ~HttpServerTask();
   void Run() override;
   int comm_fd_;
-  HttpServer* server_;
 };
 
 } // end namespace WebServer

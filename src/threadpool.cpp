@@ -79,7 +79,6 @@ void ThreadPool::KillThreads() {
   killthreads_ = true;
   for (size_t i = 0; i < thread_array_.size(); i++) {
     pthread_kill(thread_array_[i], SIGINT);
-    pthread_join(thread_array_[i], nullptr);
   }
 }
 

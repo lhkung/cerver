@@ -11,7 +11,23 @@ using std::shared_ptr;
 using std::vector;
 using std::unordered_map;
 
+static string DIR;
+
 namespace WebServer {
+
+static void LowerCase(string& str);
+static void Trim(string& str);
+static int Split(string& str, const string& delim, vector<string>* out);
+static bool IsNumber(const string& str);
+static void HandleSigint(int signum);
+static bool ParseRequest(string& header, HttpRequest* req);
+static void ThreadLoop(int comm_fd);
+static bool ParseRequest(string& header, HttpRequest* req);
+static void ProcessRequest(const HttpRequest& req, HttpResponse* res);
+static void SendResponse(const HttpResponse& res, TCPConnection* conn);
+static string GetContentType(const string& path);
+static void SetErrCode(int err_code, HttpResponse* res);
+static int SendFile(int file_fd, TCPConnection* conn);
 
 static void LowerCase(string& str) {
   for (int i = 0; i < str.length(); i++) {
@@ -66,8 +82,8 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
 HttpServer::HttpServer()
   : threadpool_(std::make_unique<ThreadPool>(100)), listen_port_(8000) { }
 
-HttpServer::HttpServer(int max_thread, int listen_port, const string& directory)
-  : threadpool_(std::make_unique<ThreadPool>(max_thread)), listen_port_(listen_port), directory_(directory) { }
+HttpServer::HttpServer(int max_thread, int listen_port)
+  : threadpool_(std::make_unique<ThreadPool>(max_thread)), listen_port_(listen_port) { }
 
 HttpServer::~HttpServer() { }
 
@@ -86,15 +102,22 @@ void HttpServer::Run() {
       break;
     }
     std::cout << "Connection from " << addr << ":" << port << std::endl;
-    unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd, this);
+    unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd);
     threadpool_->Dispatch(std::move(task));
   }
   threadpool_->KillThreads();
   std::cerr << "Server shut down." << std::endl;
-
 }
 
-void HttpServer::ThreadLoop(int comm_fd) {
+
+HttpServerTask::HttpServerTask(int comm_fd) 
+  : comm_fd_(comm_fd) { }
+HttpServerTask::~HttpServerTask() { }
+void HttpServerTask::Run() {
+  ThreadLoop(comm_fd_);
+}
+
+static void ThreadLoop(int comm_fd) {
   TCPConnection conn = TCPConnection(comm_fd);
   while (true) {
     string header;
@@ -123,7 +146,7 @@ void HttpServer::ThreadLoop(int comm_fd) {
   std::cerr << "Connection closed" << std::endl;
 }
 
-bool HttpServer::ParseRequest(string& header, HttpRequest* req) {
+static bool ParseRequest(string& header, HttpRequest* req) {
   vector<string> lines;
   int num_lines = Split(header, "\r\n", &lines);
   if (num_lines < 1) {
@@ -150,7 +173,7 @@ bool HttpServer::ParseRequest(string& header, HttpRequest* req) {
   return true;
 }
 
-void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
+static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   if (req.method_ != "get") {
     SetErrCode(405, res);
     return;
@@ -161,13 +184,13 @@ void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   }
   string path;
   if (req.uri_ == "/") {
-     path = directory_ + "/index.html";
+     path = DIR + "/index.html";
   } else {
-    path = directory_ + "/" + req.uri_;
+    path = DIR + "/" + req.uri_;
   }
   int file = open(path.c_str(), O_RDONLY);
   if (file == -1) {
-    std::cout << strerror(errno) << std::endl;
+    std::cout << strerror(errno) << ": " << path << std::endl;
     SetErrCode(404, res);
     return;
   }
@@ -182,7 +205,7 @@ void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   res->AddHeader("Content-Length", std::to_string(size));
 }
 
-void HttpServer::SendResponse(const HttpResponse& res, TCPConnection* conn) {
+static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
   conn->Send(res.protocol_ + " " + std::to_string(res.status_code_) + " " + res.reason_phrase_ + "\r\n");
   for (auto it = res.headers_.begin(); it != res.headers_.end(); it++) {
     conn->Send(it->first + ": " + it->second + "\r\n");
@@ -199,7 +222,7 @@ void HttpServer::SendResponse(const HttpResponse& res, TCPConnection* conn) {
   }
 }
 
-string HttpServer::GetContentType(const string& path) {
+static string GetContentType(const string& path) {
   string ext = ""; 
   for (int i = path.length() - 1; i >= 0; i--) {
     ext += path[i];
@@ -233,7 +256,8 @@ string HttpServer::GetContentType(const string& path) {
   }
   return "text/plain";
 }
-void HttpServer::SetErrCode(int err_code, HttpResponse* res) {
+
+static void SetErrCode(int err_code, HttpResponse* res) {
   res->protocol_ = "HTTP/1.1";
   auto it = err_codes.find(err_code);
   if (it == err_codes.end()) {
@@ -253,7 +277,7 @@ void HttpServer::SetErrCode(int err_code, HttpResponse* res) {
   res->body_ = res->reason_phrase_;
 }
 
-int HttpServer::SendFile(int file_fd, TCPConnection* conn) {
+static int SendFile(int file_fd, TCPConnection* conn) {
   if (file_fd == -1) {
     return -1;
   }
@@ -269,13 +293,6 @@ int HttpServer::SendFile(int file_fd, TCPConnection* conn) {
   return total_bytes;
 }
 
-HttpServerTask::HttpServerTask(int comm_fd, HttpServer* server) 
-  : comm_fd_(comm_fd), server_(server) { }
-HttpServerTask::~HttpServerTask() { }
-void HttpServerTask::Run() {
-  server_->ThreadLoop(comm_fd_);
-}
-
 } // end namespace WebServer
 
 int main(int argc, char** argv) {
@@ -288,14 +305,17 @@ int main(int argc, char** argv) {
     std::cerr << "./httpserver <port> <directory>" << std::endl;
     return EXIT_FAILURE;
   }
+  DIR = string(argv[2]);
   int port = std::atoi(argv[1]);
   pid_t pid = fork();
   if (pid == 0) {
-    shared_ptr<WebServer::Server> server = std::make_shared<WebServer::HttpServer>(32, port, string(argv[2]));
+    shared_ptr<WebServer::Server> server = std::make_shared<WebServer::HttpServer>(32, port);
     server->Run();
     exit(EXIT_SUCCESS);
   }
-  std::cout << "httpserver is running, listenting to port " << port << "." << std::endl;
+  std::cout << "httpserver is running" << std::endl;
+  std::cout << "Listenting to port " << port << std::endl;
+  std::cout << "Reading from directory " << DIR << std::endl;
   std::cout << "pid = " << pid << std::endl;
   return EXIT_SUCCESS;
 }
