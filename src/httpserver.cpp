@@ -309,7 +309,7 @@ int main(int argc, char** argv) {
   int port = std::atoi(argv[1]);
   pid_t pid = fork();
   if (pid == 0) {
-    shared_ptr<WebServer::Server> server = std::make_shared<WebServer::HttpServer>(32, port);
+    unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port);
     server->Run();
     exit(EXIT_SUCCESS);
   }

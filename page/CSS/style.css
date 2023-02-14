@@ -56,7 +56,7 @@ hr{
   border: dotted #E5DCC3 6px;
   border-bottom: none;
   width: 4%;
-  margin: 100px auto;
+  margin: 70px auto;
 }
 a{
   color: #434242;
@@ -131,6 +131,7 @@ a{
 .my-story-BTN {
   position: relative;
   top: 50px;
+  bottom: 50px;
   margin: auto;
   background: #C2B8A3;
   background-image: -webkit-linear-gradient(top, #C2B8A3, #A19882);
@@ -155,6 +156,7 @@ a{
 .translated-BTN {
   position: relative;
   top: 50px;
+  bottom: 50px;
   margin: auto;
   background: #C2B8A3;
   background-image: -webkit-linear-gradient(top, #C2B8A3, #A19882);
@@ -179,7 +181,12 @@ a{
 
 
 /*My Story Page*/
-
+.poetry-hr{
+  border: dotted #E5DCC3 6px;
+  border-bottom: none;
+  width: 4%;
+  margin: 30px auto;
+}
 .my-story-body{
   background-color: #FDFAF6;
   margin:0px;
@@ -202,13 +209,21 @@ a{
 .allegory-explain{
   font-size: 1rem;
 }
-.story-container{
-  padding-top:100px;
-  padding-bottom:100px;
+.chinese-container{
+  margin-left: 30%;
+  padding-top:30px;
+  padding-bottom:20px;
 }
-.story{
+.chinese{
+  font-family: "Helvetica", "Arial","微軟正黑體","黑體-繁","LiHei Pro", sans-serif;
   text-align: left;
-  width: 60%;
+}
+.translated-container{
+  margin-left: 30%;
+  padding-bottom:30px;
+}
+.translation{
+  text-align: left;
   line-height: 2;
   font-weight: 300;
   margin: 20px auto 20px auto;
@@ -219,8 +234,6 @@ a{
   padding-top:50px;
 
 }
-
-
 .TAW-E{
   position: relative;
   height: 200px;
@@ -328,7 +341,6 @@ a{
 .HST-C{
   height: 200px;
 }
-
 .arrow7{
   position: relative;
   bottom: 60px;
@@ -339,7 +351,6 @@ a{
   font-family: sans-serif;
   margin-bottom: 50px;
 }
-
 .earth{
   margin-top: 70px;
   width: 10%;
