@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include "httpserver.h"
 
 #define DATA_BATCH 4194304 // 4 MB
@@ -296,26 +297,69 @@ static int SendFile(int file_fd, TCPConnection* conn) {
 } // end namespace WebServer
 
 int main(int argc, char** argv) {
-  if (argc < 3) {
-    std::cerr << "./httpserver <port> <directory>" << std::endl;
+  int port = 80;
+  int c;
+  bool background = true;
+  while ((c = getopt(argc, argv, "p:t")) != -1) {
+    switch(c) {
+      case 'p':
+        if (!WebServer::IsNumber(string(optarg))) {
+          std::cerr << "-p argument must be a number that specifies a port" << std::endl;
+          return EXIT_FAILURE;
+        }
+        port = atoi(optarg);
+        break;
+      case 't':
+        background = false;
+        break;
+      case '?':
+        std::cerr << optopt << " is not an accepted argument." << std::endl;
+        return -1;
+      default:
+        abort();
+    }
+  }
+  if (optind >= argc) {
+    std::cerr << "./httpserver run <directory>" << std::endl;
+    std::cerr << "./httpserver end" << std::endl;
     return EXIT_FAILURE;
   }
-  string port_arg = string(argv[1]);
-  if (!WebServer::IsNumber(port_arg)) {
-    std::cerr << "./httpserver <port> <directory>" << std::endl;
+  if (string(argv[optind]) == "end") {
+    int fd = open("runlog/process.txt", O_RDWR);
+    if (fd == -1) {
+      std::cerr << strerror(errno) << std::endl;
+      return EXIT_FAILURE;
+    }
+    pid_t pid;
+    read(fd, &pid, sizeof(pid_t));
+    kill(pid, SIGINT);
+    close(fd);
+    remove("runlog/process.txt");
+    return EXIT_SUCCESS;
+  }
+  if (string(argv[optind]) != "run" || optind + 1 >= argc) {
+     std::cerr << "./httpserver run <directory>" << std::endl;
     return EXIT_FAILURE;
   }
-  DIR = string(argv[2]);
-  int port = std::atoi(argv[1]);
-  pid_t pid = fork();
-  if (pid == 0) {
-    unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port);
-    server->Run();
-    exit(EXIT_SUCCESS);
-  }
-  std::cout << "httpserver is running" << std::endl;
-  std::cout << "Listenting to port " << port << std::endl;
-  std::cout << "Reading from directory " << DIR << std::endl;
-  std::cout << "pid = " << pid << std::endl;
+  DIR = string(argv[optind + 1]);
+  if (background) {
+    pid_t pid = fork();
+    if (pid == 0) {
+      unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port);
+      server->Run();
+      exit(EXIT_SUCCESS);
+    }
+    mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
+    write(fd, &pid, sizeof(pid_t));
+    close(fd);
+    std::cout << "httpserver is running" << std::endl;
+    std::cout << "Listenting to port " << port << std::endl;
+    std::cout << "Reading from directory " << DIR << std::endl;
+    std::cout << "pid = " << pid << std::endl;
+    return EXIT_SUCCESS;
+  } 
+  unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port);
+  server->Run();
   return EXIT_SUCCESS;
 }
