@@ -211,18 +211,23 @@ static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
 }
 
 static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
-  std::cerr << "Sending response " << res.status_code_ << std::endl;
+  std::cerr << "Sending response header " << res.status_code_ << std::endl;
   conn->Send(res.protocol_ + " " + std::to_string(res.status_code_) + " " + res.reason_phrase_ + "\r\n");
   for (auto it = res.headers_.begin(); it != res.headers_.end(); it++) {
     conn->Send(it->first + ": " + it->second + "\r\n");
   }
   conn->Send("\r\n");
   if (res.has_body_) {
+    std::cerr << "Sending response body " << std::endl;
     conn->Send(res.body_);
     return;
   }
   if (res.has_file_) {
+    std::cerr << "Sending response file " << std::endl;
     int file = open(res.file_.c_str(), O_RDONLY);
+    if (file == -1) {
+      std::cerr << "failed to open file " << errno << std::endl;
+    }
     SendFile(file, conn);
     close(file);
   }
