@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace WebServer {
+namespace Cerver {
 
 static const std::string DOUBLE_CRLF = "\r\n\r\n";
 

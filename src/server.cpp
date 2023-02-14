@@ -5,7 +5,7 @@
 
 using std::string;
 
-namespace WebServer {
+namespace Cerver {
 
 Server::Server() {};
 Server::~Server() {};

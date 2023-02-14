@@ -10,7 +10,7 @@
 
 using std::string;
 
-namespace WebServer {
+namespace Cerver {
 
 TCPConnection::TCPConnection() : sockfd_(-1) {}
 TCPConnection::TCPConnection(int sockfd) : sockfd_(sockfd) {}

@@ -8,7 +8,7 @@
 #include "threadpool.h"
 #include "tcpconnection.h"
 
-namespace WebServer {
+namespace Cerver {
 
 class HttpRequest {
 public:

@@ -6,7 +6,7 @@
 using std::vector;
 using std::unique_ptr;
 
-namespace WebServer {
+namespace Cerver {
 
 // The main thread loop.
 // Each thread waits on the condition variable until signaled.

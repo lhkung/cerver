@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "httpserver.h"
+#include "logger.h"
 
 #define DATA_BATCH 4194304 // 4 MB
 
@@ -13,9 +14,10 @@ using std::shared_ptr;
 using std::vector;
 using std::unordered_map;
 
-static string DIR;
+namespace Cerver {
 
-namespace WebServer {
+static string DIR;
+static Logger log;
 
 static void LowerCase(string& str);
 static void Trim(string& str);
@@ -102,11 +104,12 @@ void HttpServer::Run() {
     if (comm_fd == -1) {
       break;
     }
-    std::cout << "Connection from " << addr << ":" << port << std::endl;
+    log << "Connection from " << addr << ":" << port << "\n";
     unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd);
     threadpool_->Dispatch(std::move(task));
   }
   threadpool_->KillThreads();
+  log << "Server shut down\n";
   std::cerr << "Server shut down" << std::endl;
 }
 
@@ -129,7 +132,7 @@ static void ThreadLoop(int comm_fd) {
     HttpRequest req;
     HttpResponse res;
     bool req_valid = ParseRequest(header, &req);
-    std::cerr << req.method_ << " " << req.uri_ << " " << req.protocol_ << std::endl;
+    log << req.method_ << " " << req.uri_ << " " << req.protocol_ << "\n";
     if (!req_valid) {
       SetErrCode(404, &res);
       SendResponse(res, &conn);
@@ -147,7 +150,7 @@ static void ThreadLoop(int comm_fd) {
     SendResponse(res, &conn);
   }
   conn.Close();
-  std::cerr << "Connection closed" << std::endl;
+  log << "Connection closed\n";
 }
 
 static bool ParseRequest(string& header, HttpRequest* req) {
@@ -210,7 +213,7 @@ static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
 }
 
 static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
-  std::cerr << "Sending response header " << res.status_code_ << std::endl;
+  log << "Sending response header " << res.status_code_ << "\n";
   conn->Send(res.protocol_ + " " + std::to_string(res.status_code_) + " " + res.reason_phrase_ + "\r\n");
   for (auto it = res.headers_.begin(); it != res.headers_.end(); it++) {
     conn->Send(it->first + ": " + it->second + "\r\n");
@@ -223,12 +226,12 @@ static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
   if (res.has_file_) {
     int file = open(res.file_.c_str(), O_RDONLY);
     if (file == -1) {
-      std::cerr << "failed to open file " << errno << std::endl;
+      log << "failed to open file " << errno << "\n";
     }
     SendFile(file, conn);
     close(file);
   }
-  std::cerr << "Response sent" << std::endl;
+  log << "Response sent\n";
 }
 
 static string GetContentType(const string& path) {
@@ -311,7 +314,7 @@ int main(int argc, char** argv) {
   while ((c = getopt(argc, argv, "p:t")) != -1) {
     switch(c) {
       case 'p':
-        if (!WebServer::IsNumber(string(optarg))) {
+        if (!Cerver::IsNumber(string(optarg))) {
           std::cerr << "-p argument must be a number that specifies a port" << std::endl;
           return EXIT_FAILURE;
         }
@@ -322,7 +325,7 @@ int main(int argc, char** argv) {
         break;
       case '?':
         std::cerr << optopt << " is not an accepted argument." << std::endl;
-        return -1;
+        return 1;
       default:
         abort();
     }
@@ -348,25 +351,26 @@ int main(int argc, char** argv) {
      std::cerr << "./httpserver run <directory>" << std::endl;
     return EXIT_FAILURE;
   }
-  DIR = string(argv[optind + 1]);
+  mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  Cerver::DIR = string(argv[optind + 1]);
+  Cerver::log = Cerver::Logger("runlog");
   if (background) {
     pid_t pid = fork();
     if (pid == 0) {
-      unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port);
+      unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port);
       server->Run();
       exit(EXIT_SUCCESS);
     }
-    mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
     write(fd, &pid, sizeof(pid_t));
     close(fd);
     std::cout << "httpserver is running" << std::endl;
     std::cout << "Listenting to port " << port << std::endl;
-    std::cout << "Reading from directory " << DIR << std::endl;
+    std::cout << "Reading from directory " << Cerver::DIR << std::endl;
     std::cout << "pid = " << pid << std::endl;
     return EXIT_SUCCESS;
   } 
-  unique_ptr<WebServer::Server> server = std::make_unique<WebServer::HttpServer>(32, port);
+  unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(32, port);
   server->Run();
   return EXIT_SUCCESS;
 }

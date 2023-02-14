@@ -4,7 +4,7 @@
 #include <string>
 #include <signal.h>
 
-namespace WebServer {
+namespace Cerver {
 
 class Server {
   public:
