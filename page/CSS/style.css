@@ -17,7 +17,10 @@
 .subtitle{
   font-family: monospace;
 }
-
+.buttons-container {
+  margin: auto;
+  padding-bottom: 60px;
+}
 .intro{
   width: 50%;
   margin: auto;
@@ -128,11 +131,10 @@ a{
 .footer-link:hover{
   color: grey;
 }
-.my-story-BTN {
+.poetry-BTN {
   position: relative;
   top: 50px;
   bottom: 50px;
-  margin: auto;
   background: #C2B8A3;
   background-image: -webkit-linear-gradient(top, #C2B8A3, #A19882);
   background-image: -moz-linear-gradient(top, #C2B8A3, #A19882);
@@ -149,15 +151,14 @@ a{
   text-decoration: none;
 }
 
-.my-story-BTN:hover {
+.poetry-BTN:hover {
   background: #E6DDC6;
   text-decoration: none;
 }
-.translated-BTN {
+.books-BTN {
   position: relative;
   top: 50px;
   bottom: 50px;
-  margin: auto;
   background: #C2B8A3;
   background-image: -webkit-linear-gradient(top, #C2B8A3, #A19882);
   background-image: -moz-linear-gradient(top, #C2B8A3, #A19882);
@@ -174,7 +175,7 @@ a{
   text-decoration: none;
 }
 
-.translated-BTN:hover {
+.books-BTN:hover {
   background: #E6DDC6;
   text-decoration: none;
 }
