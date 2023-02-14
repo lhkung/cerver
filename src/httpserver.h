@@ -26,7 +26,7 @@ public:
 
 class HttpResponse {
 public:
-  HttpResponse() { }
+  HttpResponse() : has_body_(false), has_file_(false){ }
   virtual ~HttpResponse() { }
   void AddHeader(const std::string& name, const std::string& value) {
     headers_.insert({name, value});
