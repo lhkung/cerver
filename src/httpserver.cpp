@@ -1,5 +1,6 @@
 #include <iostream>
 #include <unistd.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "httpserver.h"
@@ -92,7 +93,7 @@ void HttpServer::Run() {
   PrepareToHandleSignal(SIGINT, HandleSigint);
   int listen_fd = CreateListenSocket(listen_port_, 100);
   if (listen_fd == -1) {
-    std::cerr << "Failed to create listening socket. " << strerror(errno) << std::endl;
+    std::cerr << "Failed to create listening socket. " << std::endl;
     return;
   }
   while (true) {
@@ -191,7 +192,7 @@ static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   }
   int file = open(path.c_str(), O_RDONLY);
   if (file == -1) {
-    std::cout << strerror(errno) << ": " << path << std::endl;
+    std::cout << "failed to open "<< path << std::endl;
     SetErrCode(404, res);
     return;
   }
@@ -327,7 +328,6 @@ int main(int argc, char** argv) {
   if (string(argv[optind]) == "end") {
     int fd = open("runlog/process.txt", O_RDWR);
     if (fd == -1) {
-      std::cerr << strerror(errno) << std::endl;
       return EXIT_FAILURE;
     }
     pid_t pid;
