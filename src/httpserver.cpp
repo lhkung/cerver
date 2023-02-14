@@ -23,16 +23,15 @@ static int Split(string& str, const string& delim, vector<string>* out);
 static bool IsNumber(const string& str);
 static void HandleSigint(int signum);
 static bool ParseRequest(string& header, HttpRequest* req);
-static void ThreadLoop(int comm_fd);
-static bool ParseRequest(string& header, HttpRequest* req);
 static void ProcessRequest(const HttpRequest& req, HttpResponse* res);
+static void ThreadLoop(int comm_fd);
 static void SendResponse(const HttpResponse& res, TCPConnection* conn);
 static string GetContentType(const string& path);
 static void SetErrCode(int err_code, HttpResponse* res);
 static int SendFile(int file_fd, TCPConnection* conn);
 
 static void LowerCase(string& str) {
-  for (int i = 0; i < str.length(); i++) {
+  for (uint i = 0; i < str.length(); i++) {
     if (str[i] >= 'A' && str[i] <= 'Z') {
       str[i] = static_cast<char>(str[i] + 32);
     }
@@ -65,7 +64,7 @@ static int Split(string& str, const string& delim, vector<string>* out) {
 }
 
 static bool IsNumber(const string& str) {
-  for (int i = 0; i < str.length(); i++) {
+  for (uint i = 0; i < str.length(); i++) {
     if (str[i] < '0' || str[i] > '9') {
       return false;
     }
@@ -167,7 +166,7 @@ static bool ParseRequest(string& header, HttpRequest* req) {
   req->method_ = first_line[0];
   req->uri_ = first_line[1];
   req->protocol_ = first_line[2];
-  for (int i = 1; i < lines.size(); i++) {
+  for (uint i = 1; i < lines.size(); i++) {
     vector<string> kv;
     Split(lines[i], ":", &kv);
     LowerCase(kv[0]);
@@ -218,12 +217,10 @@ static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
   }
   conn->Send("\r\n");
   if (res.has_body_) {
-    std::cerr << "Sending response body " << std::endl;
     conn->Send(res.body_);
     return;
   }
   if (res.has_file_) {
-    std::cerr << "Sending response file " << std::endl;
     int file = open(res.file_.c_str(), O_RDONLY);
     if (file == -1) {
       std::cerr << "failed to open file " << errno << std::endl;
@@ -236,7 +233,7 @@ static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
 
 static string GetContentType(const string& path) {
   string ext = ""; 
-  for (int i = path.length() - 1; i >= 0; i--) {
+  for (uint i = path.length() - 1; i >= 0; i--) {
     ext += path[i];
     if (path[i] == '.') {
       break;
