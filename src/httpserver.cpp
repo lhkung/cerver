@@ -128,8 +128,12 @@ static void ThreadLoop(int comm_fd) {
       break;
     }
     HttpRequest req;
+    HttpResponse res;
     bool req_valid = ParseRequest(header, &req);
+    std::cerr << req.method_ << " " << req.uri_ << req.protocol_ << std::endl;
     if (!req_valid) {
+      SetErrCode(404, &res);
+      SendResponse(res, &conn);
       continue;
     }
     auto it = req.headers_.find("content-length");
@@ -140,7 +144,6 @@ static void ThreadLoop(int comm_fd) {
         break;
       }
     }
-    HttpResponse res;
     ProcessRequest(req, &res);
     SendResponse(res, &conn);
   }

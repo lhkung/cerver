@@ -16,4 +16,4 @@ $(bindir)/tcpconnection.o: src/tcpconnection.cpp
 $(bindir)/threadpool.o: src/threadpool.cpp
 	g++ -Wall -std=c++17 -lpthread -c $^ -o $@
 $(bindir)/httpserver: src/httpserver.cpp $(LIBRARY)
-	g++ -Wall -std=c++17 $^ -o $@
+	g++ -Wall -std=c++17 -lpthread $^ -o $@
