@@ -10,8 +10,8 @@ namespace Cerver {
 
 class Logger {
     public:
-      Logger() : init_(false), logfd_(-1) {}
-      Logger(std::string dir) : init_(true) {
+      Logger() :  logfd_(-1) {}
+      Logger(std::string dir) {
         std::string path = dir + "/run.log";
         logfd_ = open(path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
         if (logfd_ == -1) {
@@ -19,12 +19,8 @@ class Logger {
         }
         pthread_mutex_init(&lock_, nullptr);
       }
-      virtual ~Logger() { 
-        if (init_) {
-          //close(logfd_);
-          // pthread_mutex_destroy(&lock_);
-        }
-      }
+      virtual ~Logger() { }
+
       Logger& operator<<(const std::string& t) {
         pthread_mutex_lock(&lock_);
         write(logfd_, t.c_str(), sizeof(char) * t.length());
@@ -45,8 +41,11 @@ class Logger {
         pthread_mutex_unlock(&lock_);
         return *this;
       }
+      void Close() {
+        close(logfd_);
+        pthread_mutex_destroy(&lock_);
+      }
     private:
-      bool init_;
       int logfd_;
       pthread_mutex_t lock_;
 };

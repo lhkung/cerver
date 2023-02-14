@@ -359,6 +359,7 @@ int main(int argc, char** argv) {
     if (pid == 0) {
       unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port);
       server->Run();
+      Cerver::log.Close();
       exit(EXIT_SUCCESS);
     }
     int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
