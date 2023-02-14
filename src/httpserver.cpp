@@ -130,7 +130,7 @@ static void ThreadLoop(int comm_fd) {
     HttpRequest req;
     HttpResponse res;
     bool req_valid = ParseRequest(header, &req);
-    std::cerr << req.method_ << " " << req.uri_ << req.protocol_ << std::endl;
+    std::cerr << req.method_ << " " << req.uri_ << " " << req.protocol_ << std::endl;
     if (!req_valid) {
       SetErrCode(404, &res);
       SendResponse(res, &conn);
@@ -211,6 +211,7 @@ static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
 }
 
 static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
+  std::cerr << "Sending response " << res.status_code_ << std::endl;
   conn->Send(res.protocol_ + " " + std::to_string(res.status_code_) + " " + res.reason_phrase_ + "\r\n");
   for (auto it = res.headers_.begin(); it != res.headers_.end(); it++) {
     conn->Send(it->first + ": " + it->second + "\r\n");
@@ -225,6 +226,7 @@ static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
     SendFile(file, conn);
     close(file);
   }
+  std::cerr << "Response sent" << std::endl;
 }
 
 static string GetContentType(const string& path) {
