@@ -5,16 +5,21 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <pthread.h>
 
 class LRUCache {
   public:
-    LRUCache() : capacity_(1024), size_(0) {}
-    LRUCache(size_t capacity) : capacity_(capacity), size_(0) {}
-    virtual ~LRUCache() {}
+    LRUCache(size_t capacity) : capacity_(capacity), size_(0) {
+      pthread_mutex_init(&lock_, nullptr);
+    }
+    virtual ~LRUCache() {
+      pthread_mutex_destroy(&lock_);
+    }
     int Put(const std::string& key, const std::string& val) {
       if (val.size() > capacity_) {
         return -1;
       }
+      pthread_mutex_lock(&lock_);
       auto it = map_.find(key);
       if (it == map_.end()) { // New element
         while (size_ + val.size() >= capacity_) {
@@ -26,34 +31,44 @@ class LRUCache {
         map_.insert({key, last});
         kv_.insert({key, val});
         size_ += val.length();
+        pthread_mutex_unlock(&lock_);
         return 0;
       } else { // Existing element
         size_ -= kv_.at(it->first).length();
         kv_[it->first] = val;
         size_ += val.length();
         queue_.splice(queue_.end(), queue_, it->second);
+        pthread_mutex_unlock(&lock_);
         return 1;
       }
     }
+
     int Get(const std::string& key, std::string* val) {
+      pthread_mutex_lock(&lock_);
       auto it = map_.find(key);
       if (it == map_.end()) { // Does not exist
+        pthread_mutex_unlock(&lock_);
         return -1;
       }
       *val = kv_.at(it->first);
       // LRU cache tracks Get access.
       queue_.splice(queue_.end(), queue_, it->second);
+      pthread_mutex_unlock(&lock_);
       return 0;
     }
+
     size_t Capacity() {
       return capacity_;
     }
+
     size_t Size() {
       return size_;
     }
+
     int Entry() {
       return queue_.size();
     }
+
   private:
     void Evict() {
       auto first_it = queue_.begin();
@@ -67,6 +82,7 @@ class LRUCache {
     typename std::list<std::string> queue_;
     typename std::unordered_map<std::string, std::string> kv_;
     std::unordered_map<std::string, typename std::list<std::string>::iterator> map_;
+    pthread_mutex_t lock_;
 };
 
 #endif
