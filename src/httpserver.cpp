@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "httpserver.h"
-#include "logger.h"
 
 #define DATA_BATCH 4194304 // 4 MB
 
@@ -16,21 +15,14 @@ using std::unordered_map;
 
 namespace Cerver {
 
-static string DIR;
-static Logger log;
-
-static void LowerCase(string& str);
-static void Trim(string& str);
-static int Split(string& str, const string& delim, vector<string>* out);
-static bool IsNumber(const string& str);
-static void HandleSigint(int signum);
-static bool ParseRequest(string& header, HttpRequest* req);
-static void ProcessRequest(const HttpRequest& req, HttpResponse* res);
-static void ThreadLoop(int comm_fd);
-static void SendResponse(const HttpResponse& res, TCPConnection* conn);
-static string GetContentType(const string& path);
-static void SetErrCode(int err_code, HttpResponse* res);
-static int SendFile(int file_fd, TCPConnection* conn);
+// static void HandleSigint(int signum);
+// static bool ParseRequest(string& header, HttpRequest* req);
+// static void ProcessRequest(const HttpRequest& req, HttpResponse* res);
+// static void ThreadLoop(int comm_fd);
+// static void SendResponse(const HttpResponse& res, TCPConnection* conn);
+// static string GetContentType(const string& path);
+// static void SetErrCode(int err_code, HttpResponse* res);
+// static int SendFile(int file_fd, TCPConnection* conn);
 
 static void LowerCase(string& str) {
   for (uint i = 0; i < str.length(); i++) {
@@ -65,6 +57,14 @@ static int Split(string& str, const string& delim, vector<string>* out) {
   return out->size();
 }
 
+ static const char* GetTime() {
+  time_t now = time(0);
+  char* time_str = ctime(&now);
+  int len = strlen(time_str);
+  time_str[len - 1] = '\0';
+  return strcat(time_str, ": ");
+}
+
 static bool IsNumber(const string& str) {
   for (uint i = 0; i < str.length(); i++) {
     if (str[i] < '0' || str[i] > '9') {
@@ -82,16 +82,24 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
                                                {405, "Method Not Allowed"},
                                                {505, "HTTP Version not supported"}};
 
-HttpServer::HttpServer()
-  : threadpool_(std::make_unique<ThreadPool>(100)), listen_port_(8000) { }
+HttpServer::HttpServer(int max_thread, int listen_port, int cache_size, string dir, string logdir)
+  : threadpool_(std::make_unique<ThreadPool>(max_thread)),
+    log_(std::make_unique<Logger>(logdir)),
+    cache_(std::make_unique<LRUCache>(cache_size)),
+    dir_(dir),
+    listen_port_(listen_port) {
+    pthread_mutex_init(&loglock_, nullptr);
+}
 
-HttpServer::HttpServer(int max_thread, int listen_port)
-  : threadpool_(std::make_unique<ThreadPool>(max_thread)), listen_port_(listen_port) { }
-
-HttpServer::~HttpServer() { }
+HttpServer::~HttpServer() {
+   pthread_mutex_destroy(&loglock_);
+}
 
 void HttpServer::Run() {
   PrepareToHandleSignal(SIGINT, HandleSigint);
+  pthread_mutex_lock(&loglock_);
+  *log_ << GetTime() << "Server starts\n";
+  pthread_mutex_unlock(&loglock_);
   int listen_fd = CreateListenSocket(listen_port_, 100);
   if (listen_fd == -1) {
     std::cerr << "Failed to create listening socket. " << std::endl;
@@ -104,24 +112,28 @@ void HttpServer::Run() {
     if (comm_fd == -1) {
       break;
     }
-    log << "Connection from " << addr << ":" << port << "\n";
-    unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd);
+    pthread_mutex_lock(&loglock_);
+    *log_ << GetTime() << "Connection from " << addr << ":" << port << "\n";
+    pthread_mutex_unlock(&loglock_);
+    unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd, this);
     threadpool_->Dispatch(std::move(task));
   }
   threadpool_->KillThreads();
-  log << "Server shut down\n";
+  pthread_mutex_lock(&loglock_);
+  *log_ << GetTime() << "Server shut down\n";
+  pthread_mutex_unlock(&loglock_);
   std::cerr << "Server shut down" << std::endl;
 }
 
 
-HttpServerTask::HttpServerTask(int comm_fd) 
-  : comm_fd_(comm_fd) { }
+HttpServerTask::HttpServerTask(int comm_fd, HttpServer* server) 
+  : comm_fd_(comm_fd), server_(server) { }
 HttpServerTask::~HttpServerTask() { }
 void HttpServerTask::Run() {
-  ThreadLoop(comm_fd_);
+  server_->ThreadLoop(comm_fd_);
 }
 
-static void ThreadLoop(int comm_fd) {
+void HttpServer::ThreadLoop(int comm_fd) {
   TCPConnection conn = TCPConnection(comm_fd);
   while (true) {
     string header;
@@ -132,7 +144,9 @@ static void ThreadLoop(int comm_fd) {
     HttpRequest req;
     HttpResponse res;
     bool req_valid = ParseRequest(header, &req);
-    log << req.method_ << " " << req.uri_ << " " << req.protocol_ << "\n";
+    pthread_mutex_lock(&loglock_);
+    *log_ << GetTime() << req.method_ << " " << req.uri_ << " " << req.protocol_ << "\n";
+    pthread_mutex_unlock(&loglock_);
     if (!req_valid) {
       SetErrCode(404, &res);
       SendResponse(res, &conn);
@@ -150,10 +164,12 @@ static void ThreadLoop(int comm_fd) {
     SendResponse(res, &conn);
   }
   conn.Close();
-  log << "Connection closed\n";
+  pthread_mutex_lock(&loglock_);
+  *log_ << GetTime() << "Connection closed\n";
+  pthread_mutex_unlock(&loglock_);
 }
 
-static bool ParseRequest(string& header, HttpRequest* req) {
+bool HttpServer::ParseRequest(string& header, HttpRequest* req) {
   vector<string> lines;
   int num_lines = Split(header, "\r\n", &lines);
   if (num_lines < 1) {
@@ -180,7 +196,7 @@ static bool ParseRequest(string& header, HttpRequest* req) {
   return true;
 }
 
-static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
+void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   if (req.method_ != "get") {
     SetErrCode(405, res);
     return;
@@ -191,9 +207,9 @@ static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   }
   string path;
   if (req.uri_ == "/") {
-     path = DIR + "/index.html";
+     path = dir_ + "/index.html";
   } else {
-    path = DIR + "/" + req.uri_;
+    path = dir_ + "/" + req.uri_;
   }
   int file = open(path.c_str(), O_RDONLY);
   if (file == -1) {
@@ -208,12 +224,14 @@ static void ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   res->has_file_ = true;
   off_t size = lseek(file, 0, SEEK_END);
   close(file);
+  res->file_size_ = static_cast<size_t>(size);
   res->file_ = path;
+  res->uri_ = req.uri_;
   res->AddHeader("Content-Length", std::to_string(size));
 }
 
-static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
-  log << "Sending response header " << res.status_code_ << "\n";
+void HttpServer::SendResponse(const HttpResponse& res, TCPConnection* conn) {
+  *log_ << GetTime() << "Sending response header " << res.status_code_ << "\n";
   conn->Send(res.protocol_ + " " + std::to_string(res.status_code_) + " " + res.reason_phrase_ + "\r\n");
   for (auto it = res.headers_.begin(); it != res.headers_.end(); it++) {
     conn->Send(it->first + ": " + it->second + "\r\n");
@@ -224,17 +242,14 @@ static void SendResponse(const HttpResponse& res, TCPConnection* conn) {
     return;
   }
   if (res.has_file_) {
-    int file = open(res.file_.c_str(), O_RDONLY);
-    if (file == -1) {
-      log << "failed to open file " << errno << "\n";
-    }
-    SendFile(file, conn);
-    close(file);
+    SendFile(res, conn);
   }
-  log << "Response sent\n";
+  pthread_mutex_lock(&loglock_);
+  *log_ << GetTime() << "Response sent\n";
+  pthread_mutex_unlock(&loglock_);
 }
 
-static string GetContentType(const string& path) {
+string HttpServer::GetContentType(const string& path) {
   string ext = ""; 
   for (uint i = path.length() - 1; i >= 0; i--) {
     ext += path[i];
@@ -269,7 +284,7 @@ static string GetContentType(const string& path) {
   return "text/plain";
 }
 
-static void SetErrCode(int err_code, HttpResponse* res) {
+void HttpServer::SetErrCode(int err_code, HttpResponse* res) {
   res->protocol_ = "HTTP/1.1";
   auto it = err_codes.find(err_code);
   if (it == err_codes.end()) {
@@ -289,10 +304,18 @@ static void SetErrCode(int err_code, HttpResponse* res) {
   res->body_ = res->reason_phrase_;
 }
 
-static int SendFile(int file_fd, TCPConnection* conn) {
-  if (file_fd == -1) {
-    return -1;
+int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
+  string val;
+  if (cache_->Get(res.uri_, &val) == 0) {
+    if (val.length() == res.file_size_) {
+      conn->Send(val);
+      pthread_mutex_lock(&loglock_);
+      *log_ << GetTime() << "Sent file from cache\n";
+      pthread_mutex_unlock(&loglock_);
+      return val.length();
+    }
   }
+  int file_fd = open(res.file_.c_str(), O_RDONLY);
   char* buf = new char[DATA_BATCH];
   int total_bytes = 0;
   ssize_t bytes_read = read(file_fd, buf, DATA_BATCH);
@@ -301,7 +324,13 @@ static int SendFile(int file_fd, TCPConnection* conn) {
     total_bytes += bytes_read;
     bytes_read = read(file_fd, buf, DATA_BATCH);
   }
+  if (total_bytes <= cache_->Capacity()) {
+    cache_->Put(res.uri_, string(buf, total_bytes));
+  }
   delete[] buf;
+  pthread_mutex_lock(&loglock_);
+  *log_ << GetTime() << "Sent file from disk\n";
+  pthread_mutex_unlock(&loglock_);
   return total_bytes;
 }
 
@@ -352,14 +381,11 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  Cerver::DIR = string(argv[optind + 1]);
-  Cerver::log = Cerver::Logger("runlog");
   if (background) {
     pid_t pid = fork();
     if (pid == 0) {
-      unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port);
+      unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1048576, string(argv[optind + 1]), "runlog");
       server->Run();
-      Cerver::log.Close();
       exit(EXIT_SUCCESS);
     }
     int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
@@ -367,11 +393,11 @@ int main(int argc, char** argv) {
     close(fd);
     std::cout << "httpserver is running" << std::endl;
     std::cout << "Listenting to port " << port << std::endl;
-    std::cout << "Reading from directory " << Cerver::DIR << std::endl;
+    std::cout << "Reading from directory " << argv[optind + 1] << std::endl;
     std::cout << "pid = " << pid << std::endl;
     return EXIT_SUCCESS;
-  } 
-  unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(32, port);
+  }
+  unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1048576, string(argv[optind + 1]), "runlog");
   server->Run();
   return EXIT_SUCCESS;
 }
