@@ -317,7 +317,7 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
   }
   int file_fd = open(res.file_.c_str(), O_RDONLY);
   char* buf = new char[DATA_BATCH];
-  int total_bytes = 0;
+  size_t total_bytes = 0;
   ssize_t bytes_read = read(file_fd, buf, DATA_BATCH);
   while (bytes_read > 0) {
     conn->Send(string(buf, bytes_read));
