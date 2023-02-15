@@ -243,6 +243,9 @@ void HttpServer::SendResponse(const HttpResponse& res, TCPConnection* conn) {
   }
   if (res.has_file_) {
     SendFile(res, conn);
+    pthread_mutex_lock(&loglock_);
+    *log_ << GetTime() << "Cache size: " << cache_->Size() << ", entries: " << cache_->Entry() << "\n";
+    pthread_mutex_unlock(&loglock_);
   }
   pthread_mutex_lock(&loglock_);
   *log_ << GetTime() << "Response sent\n";

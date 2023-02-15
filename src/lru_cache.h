@@ -48,6 +48,12 @@ class LRUCache {
     size_t Capacity() {
       return capacity_;
     }
+    size_t Size() {
+      return size_;
+    }
+    int Entry() {
+      return queue_.size();
+    }
   private:
     void Evict() {
       auto first_it = queue_.begin();
