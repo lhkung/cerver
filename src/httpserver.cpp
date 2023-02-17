@@ -86,7 +86,7 @@ HttpServer::HttpServer(int max_thread, int listen_port, int cache_size, string d
     cache_(std::make_unique<LRUCache>(cache_size)),
     dir_(dir),
     listen_port_(listen_port),
-    num_conn_(0) {
+    stat_() {
     pthread_mutex_init(&loglock_, nullptr);
 }
 
@@ -120,7 +120,7 @@ void HttpServer::Run() {
       continue;
     }
     pthread_mutex_lock(&loglock_);
-    num_conn_++;
+    stat_.num_conn_++;
     *log_ << GetTime() << "Connection from " << addr << ":" << port << "\n";
     pthread_mutex_unlock(&loglock_);
     unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd, this);
@@ -176,7 +176,7 @@ void HttpServer::ThreadLoop(int comm_fd) {
   }
   conn.Close();
   pthread_mutex_lock(&loglock_);
-  num_conn_--;
+  stat_.num_conn_--;
   *log_ << GetTime() << "Connection closed\n";
   pthread_mutex_unlock(&loglock_);
 }
@@ -322,13 +322,16 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
     if (val.length() == res.file_size_) {
       conn->Send(val);
       pthread_mutex_lock(&loglock_);
-      num_cache_++;
-      num_read_++;
-      byte_cache_ += val.length();
-      byte_read_ += val.length();
+      stat_.num_cache_++;
+      stat_.num_read_++;
+      stat_.byte_cache_ += val.length();
+      stat_.byte_read_ += val.length();
       pthread_mutex_unlock(&loglock_);
       return val.length();
     }
+    pthread_mutex_lock(&loglock_);
+    stat_.incomplete_cache_entry_++;
+    pthread_mutex_unlock(&loglock_);
   }
   int file_fd = open(res.file_.c_str(), O_RDONLY);
   char* buf = new char[DATA_BATCH];
@@ -344,8 +347,8 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
   }
   delete[] buf;
   pthread_mutex_lock(&loglock_);
-  num_read_++;
-  byte_read_ += val.length();
+  stat_.num_read_++;
+  stat_.byte_read_ += total_bytes;
   pthread_mutex_unlock(&loglock_);
   return total_bytes;
 }
@@ -354,12 +357,12 @@ void HttpServer::PrintStat() {
   std::cout << "HttpServer status\n";
   std::cout << "Listening on port " << listen_port_ << "\n";
   std::cout << "Number of threads: " << threadpool_->num_threads_running_ << "\n";
-  std::cout << "Number of active connections: " << num_conn_ << "\n";
+  std::cout << "Number of active connections: " << stat_.num_conn_ << "\n";
   std::cout << "Number of tasks in work queue: " << threadpool_->work_queue_.size() << "\n";
   std::cout << "Cache size: " << cache_->Size() << "\n";
   std::cout << "Cache entries: " << cache_->Entry() << "\n";
-  std::cout << "Cache hit rate (time): " << num_cache_ << "/" << num_read_ << " = " <<  static_cast<float>(num_cache_) / static_cast<float>(num_read_) << "\n";
-  std::cout << "Cache hit rate (byte): " << byte_cache_ << "/" << byte_read_ << " = " <<  static_cast<float>(byte_cache_) / static_cast<float>(byte_read_) << "\n";
+  std::cout << "Cache hit rate (time): " << stat_.num_cache_ << "/" << stat_.num_read_ << " = " <<  static_cast<float>(stat_.num_cache_) / static_cast<float>(stat_.num_read_) << "\n";
+  std::cout << "Cache hit rate (byte): " << stat_.byte_cache_ << "/" << stat_.byte_read_ << " = " <<  static_cast<float>(stat_.byte_cache_) / static_cast<float>(stat_.byte_read_) << "\n";
   stat = false;
 } 
 

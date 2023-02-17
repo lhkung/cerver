@@ -61,18 +61,25 @@ public:
   std::string GetContentType(const std::string& path);
   void PrintStat();
 
+  struct Stat {
+    int num_conn_;
+    int num_read_;
+    int num_cache_;
+    size_t byte_read_;
+    size_t byte_cache_;
+    int incomplete_cache_entry_;
+    Stat() : num_conn_(0), num_read_(0), num_cache_(0), byte_read_(0), byte_cache_(0), incomplete_cache_entry_(0) { }
+  };
+
 private:
+
   std::unique_ptr<ThreadPool> threadpool_;
   std::unique_ptr<Logger> log_;
   std::unique_ptr<LRUCache> cache_;
   std::string dir_;
   int listen_port_;
   pthread_mutex_t loglock_;
-  int num_conn_;
-  int num_read_;
-  int num_cache_;
-  size_t byte_read_;
-  size_t byte_cache_;
+  Stat stat_;
 };
 
 class HttpServerTask : public ThreadPool::Task {
