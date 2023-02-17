@@ -225,7 +225,7 @@ void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
   }
   int file = open(path.c_str(), O_RDONLY);
   if (file == -1) {
-    std::cout << "failed to open "<< path << std::endl;
+    *log_ << path << " not found.\n"; 
     SetErrCode(404, res);
     return;
   }
@@ -363,6 +363,7 @@ void HttpServer::PrintStat() {
   std::cout << "Cache entries: " << cache_->Entry() << "\n";
   std::cout << "Cache hit rate (time): " << stat_.num_cache_ << "/" << stat_.num_read_ << " = " <<  static_cast<float>(stat_.num_cache_) / static_cast<float>(stat_.num_read_) << "\n";
   std::cout << "Cache hit rate (byte): " << stat_.byte_cache_ << "/" << stat_.byte_read_ << " = " <<  static_cast<float>(stat_.byte_cache_) / static_cast<float>(stat_.byte_read_) << "\n";
+  std::cout << "Cache entry incomplete: " << stat_.incomplete_cache_entry_ << std::endl;
   stat = false;
 } 
 
