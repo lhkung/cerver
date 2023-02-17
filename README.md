@@ -6,4 +6,15 @@ The server uses a thread pool to handle incoming http connections and maintains 
 
 All C++ program is written in compliance with RAII paradigm.
 
-I like pure C++. Simple and elegant.
+To run the server:
+<code>httpserver run <resource_directory></code>
+
+To see the status of a running server:
+<code>httpserver stat</code>
+
+To terminate the server:
+<code>httpserver end</code>
+
+Optional arguments:
+<code>-p <port></code>: specify the listening port
+<code>-t <port></code>: attach process to terminal
