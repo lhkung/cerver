@@ -15,14 +15,8 @@ using std::unordered_map;
 
 namespace Cerver {
 
-// static void HandleSigint(int signum);
-// static bool ParseRequest(string& header, HttpRequest* req);
-// static void ProcessRequest(const HttpRequest& req, HttpResponse* res);
-// static void ThreadLoop(int comm_fd);
-// static void SendResponse(const HttpResponse& res, TCPConnection* conn);
-// static string GetContentType(const string& path);
-// static void SetErrCode(int err_code, HttpResponse* res);
-// static int SendFile(int file_fd, TCPConnection* conn);
+volatile bool running = true;
+volatile bool stat = false;
 
 static void LowerCase(string& str) {
   for (uint i = 0; i < str.length(); i++) {
@@ -74,8 +68,12 @@ static bool IsNumber(const string& str) {
   return true;
 }
 
-static void HandleSigint(int signum) {
-
+static void HandleSignal(int signum) {
+  if (signum == SIGINT) {
+    running = false;
+  } else if (signum == SIGUSR1) {
+    stat = true;
+  }
 }
 
 static unordered_map<int, string> err_codes = {{404, "Not Found"},
@@ -84,10 +82,11 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
 
 HttpServer::HttpServer(int max_thread, int listen_port, int cache_size, string dir, string logdir)
   : threadpool_(std::make_unique<ThreadPool>(max_thread)),
-    log_(std::make_unique<Logger>(logdir)),
+    log_(std::make_unique<Logger>(logdir, 1024 * 1024 * 1024)),
     cache_(std::make_unique<LRUCache>(cache_size)),
     dir_(dir),
-    listen_port_(listen_port) {
+    listen_port_(listen_port),
+    num_conn_(0) {
     pthread_mutex_init(&loglock_, nullptr);
 }
 
@@ -96,13 +95,13 @@ HttpServer::~HttpServer() {
 }
 
 void HttpServer::Run() {
-  PrepareToHandleSignal(SIGINT, HandleSigint);
+  PrepareToHandleSignal(SIGINT, HandleSignal);
+  PrepareToHandleSignal(SIGUSR1, HandleSignal);
   pthread_mutex_lock(&loglock_);
   *log_ << GetTime() << "Server starts\n";
   pthread_mutex_unlock(&loglock_);
   int listen_fd = CreateListenSocket(listen_port_, 100);
   if (listen_fd == -1) {
-    std::cerr << "Failed to create listening socket. " << std::endl;
     return;
   }
   while (true) {
@@ -110,9 +109,18 @@ void HttpServer::Run() {
     int port;
     int comm_fd = AcceptConnection(listen_fd, &addr, &port);
     if (comm_fd == -1) {
-      break;
+      if (errno == EINTR) {
+        if (stat) {
+          PrintStat();
+        }
+        if (!running) {
+          break;
+        }
+      }
+      continue;
     }
     pthread_mutex_lock(&loglock_);
+    num_conn_++;
     *log_ << GetTime() << "Connection from " << addr << ":" << port << "\n";
     pthread_mutex_unlock(&loglock_);
     unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd, this);
@@ -139,6 +147,9 @@ void HttpServer::ThreadLoop(int comm_fd) {
     string header;
     int ret = conn.ReadUntilDoubleCRLF(&header);
     if (ret <= 0) {
+      if (errno == EINTR) {
+        continue;
+      }
       break;
     }
     HttpRequest req;
@@ -165,6 +176,7 @@ void HttpServer::ThreadLoop(int comm_fd) {
   }
   conn.Close();
   pthread_mutex_lock(&loglock_);
+  num_conn_--;
   *log_ << GetTime() << "Connection closed\n";
   pthread_mutex_unlock(&loglock_);
 }
@@ -337,6 +349,17 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
   return total_bytes;
 }
 
+void HttpServer::PrintStat() {
+  std::cout << "HttpServer status\n";
+  std::cout << "Listening on port" << listen_port_ << "\n";
+  std::cout << "Cache size: " << cache_->Size() << "\n";
+  std::cout << "Cache entries: " << cache_->Entry() << "\n";
+  std::cout << "Number of threads: " << threadpool_->num_threads_running_ << "\n";
+  std::cout << "Number of active connections: " << num_conn_ << "\n";
+  std::cout << "Number of tasks in work queue: " << threadpool_->work_queue_.size() << std::endl;
+  stat = false;
+}
+
 } // end namespace WebServer
 
 int main(int argc, char** argv) {
@@ -370,6 +393,7 @@ int main(int argc, char** argv) {
   if (string(argv[optind]) == "end") {
     int fd = open("runlog/process.txt", O_RDWR);
     if (fd == -1) {
+      std::cerr << "No HttpServer is running" << std::endl;
       return EXIT_FAILURE;
     }
     pid_t pid;
@@ -377,6 +401,18 @@ int main(int argc, char** argv) {
     kill(pid, SIGINT);
     close(fd);
     remove("runlog/process.txt");
+    return EXIT_SUCCESS;
+  }
+  if (string(argv[optind]) == "stat") {
+     int fd = open("runlog/process.txt", O_RDWR);
+    if (fd == -1) {
+      std::cerr << "No HttpServer is running" << std::endl;
+      return EXIT_FAILURE;
+    }
+    pid_t pid;
+    read(fd, &pid, sizeof(pid_t));
+    kill(pid, SIGUSR1);
+    close(fd);
     return EXIT_SUCCESS;
   }
   if (string(argv[optind]) != "run" || optind + 1 >= argc) {

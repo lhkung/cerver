@@ -59,6 +59,7 @@ public:
   void SetErrCode(int status_code, HttpResponse* res);
   int SendFile(const HttpResponse& res, TCPConnection* conn);
   std::string GetContentType(const std::string& path);
+  void PrintStat();
 
 private:
   std::unique_ptr<ThreadPool> threadpool_;
@@ -67,6 +68,7 @@ private:
   std::string dir_;
   int listen_port_;
   pthread_mutex_t loglock_;
+  int num_conn_;
 };
 
 class HttpServerTask : public ThreadPool::Task {

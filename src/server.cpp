@@ -44,7 +44,7 @@ void Server::PrepareToHandleSignal(int signal, void (*SignalHandler)(int)) {
   sa.sa_handler = SignalHandler;
   sa.sa_flags = 0;
   sigemptyset (&sa.sa_mask);
-  sigaction(SIGINT, &sa, nullptr);
+  sigaction(signal, &sa, nullptr);
 }
 
 } // namespace WebServer
