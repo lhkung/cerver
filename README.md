@@ -16,5 +16,5 @@ To terminate the server:
 <code>httpserver end</code>
 
 Optional arguments:<br>
-<code>-p <port></code>: specify the listening port.<br>
-<code>-t <port></code>: attach process to terminal.<br>
+<code>-p [port]</code>: specify the listening port.<br>
+<code>-t</code>: attach process to terminal.<br>
