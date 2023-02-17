@@ -50,7 +50,7 @@ class Logger {
       }
     private:
       int logfd_;
-      size_t max_size_;
+      int max_size_;
 };
 
 } // namespace WebServer
