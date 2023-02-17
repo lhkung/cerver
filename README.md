@@ -15,6 +15,6 @@ To see the status of a running server:
 To terminate the server:
 <code>httpserver end</code>
 
-Optional arguments:
+Optional arguments:<br>
 <code>-p <port></code>: specify the listening port.<br>
 <code>-t <port></code>: attach process to terminal.<br>
