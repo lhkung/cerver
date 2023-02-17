@@ -130,7 +130,7 @@ void HttpServer::Run() {
   pthread_mutex_lock(&loglock_);
   *log_ << GetTime() << "Server shut down\n";
   pthread_mutex_unlock(&loglock_);
-  std::cerr << "Server shut down" << std::endl;
+  std::cout << "Server shut down" << std::endl;
 }
 
 
@@ -255,9 +255,6 @@ void HttpServer::SendResponse(const HttpResponse& res, TCPConnection* conn) {
   }
   if (res.has_file_) {
     SendFile(res, conn);
-    pthread_mutex_lock(&loglock_);
-    *log_ << GetTime() << "Cache size: " << cache_->Size() << ", entries: " << cache_->Entry() << "\n";
-    pthread_mutex_unlock(&loglock_);
   }
   pthread_mutex_lock(&loglock_);
   *log_ << GetTime() << "Response sent\n";
@@ -325,7 +322,10 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
     if (val.length() == res.file_size_) {
       conn->Send(val);
       pthread_mutex_lock(&loglock_);
-      *log_ << GetTime() << "Sent file from cache\n";
+      num_cache_++;
+      num_read_++;
+      byte_cache_ += val.length();
+      byte_read_ += val.length();
       pthread_mutex_unlock(&loglock_);
       return val.length();
     }
@@ -344,21 +344,24 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
   }
   delete[] buf;
   pthread_mutex_lock(&loglock_);
-  *log_ << GetTime() << "Sent file from disk\n";
+  num_read_++;
+  byte_read_ += val.length();
   pthread_mutex_unlock(&loglock_);
   return total_bytes;
 }
 
 void HttpServer::PrintStat() {
   std::cout << "HttpServer status\n";
-  std::cout << "Listening on port" << listen_port_ << "\n";
-  std::cout << "Cache size: " << cache_->Size() << "\n";
-  std::cout << "Cache entries: " << cache_->Entry() << "\n";
+  std::cout << "Listening on port " << listen_port_ << "\n";
   std::cout << "Number of threads: " << threadpool_->num_threads_running_ << "\n";
   std::cout << "Number of active connections: " << num_conn_ << "\n";
-  std::cout << "Number of tasks in work queue: " << threadpool_->work_queue_.size() << std::endl;
+  std::cout << "Number of tasks in work queue: " << threadpool_->work_queue_.size() << "\n";
+  std::cout << "Cache size: " << cache_->Size() << "\n";
+  std::cout << "Cache entries: " << cache_->Entry() << "\n";
+  std::cout << "Cache hit rate (time): " << num_cache_ << "/" << num_read_ << " = " <<  static_cast<float>(num_cache_) / static_cast<float>(num_read_) << "\n";
+  std::cout << "Cache hit rate (byte): " << byte_cache_ << "/" << byte_read_ << " = " <<  static_cast<float>(byte_cache_) / static_cast<float>(byte_read_) << "\n";
   stat = false;
-}
+} 
 
 } // end namespace WebServer
 
@@ -370,7 +373,7 @@ int main(int argc, char** argv) {
     switch(c) {
       case 'p':
         if (!Cerver::IsNumber(string(optarg))) {
-          std::cerr << "-p argument must be a number that specifies a port" << std::endl;
+          std::cout << "-p argument must be a number that specifies a port" << std::endl;
           return EXIT_FAILURE;
         }
         port = atoi(optarg);
@@ -379,21 +382,21 @@ int main(int argc, char** argv) {
         background = false;
         break;
       case '?':
-        std::cerr << optopt << " is not an accepted argument." << std::endl;
+        std::cout << optopt << " is not an accepted argument." << std::endl;
         return 1;
       default:
         abort();
     }
   }
   if (optind >= argc) {
-    std::cerr << "./httpserver run <directory>" << std::endl;
-    std::cerr << "./httpserver end" << std::endl;
+    std::cout << "./httpserver run <directory>\n";
+    std::cout << "./httpserver end" << std::endl;
     return EXIT_FAILURE;
   }
   if (string(argv[optind]) == "end") {
     int fd = open("runlog/process.txt", O_RDWR);
     if (fd == -1) {
-      std::cerr << "No HttpServer is running" << std::endl;
+      std::cout << "No HttpServer is running" << std::endl;
       return EXIT_FAILURE;
     }
     pid_t pid;
@@ -406,7 +409,7 @@ int main(int argc, char** argv) {
   if (string(argv[optind]) == "stat") {
      int fd = open("runlog/process.txt", O_RDWR);
     if (fd == -1) {
-      std::cerr << "No HttpServer is running" << std::endl;
+      std::cout << "No HttpServer is running" << std::endl;
       return EXIT_FAILURE;
     }
     pid_t pid;
@@ -416,7 +419,7 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
   }
   if (string(argv[optind]) != "run" || optind + 1 >= argc) {
-     std::cerr << "./httpserver run <directory>" << std::endl;
+     std::cout << "./httpserver run <directory>" << std::endl;
     return EXIT_FAILURE;
   }
   mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -430,9 +433,9 @@ int main(int argc, char** argv) {
     int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
     write(fd, &pid, sizeof(pid_t));
     close(fd);
-    std::cout << "httpserver is running" << std::endl;
-    std::cout << "Listenting to port " << port << std::endl;
-    std::cout << "Reading from directory " << argv[optind + 1] << std::endl;
+    std::cout << "httpserver is running\n";
+    std::cout << "Listenting to port " << port << "\n";
+    std::cout << "Reading from directory " << argv[optind + 1] << "\n";
     std::cout << "pid = " << pid << std::endl;
     return EXIT_SUCCESS;
   }

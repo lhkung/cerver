@@ -10,7 +10,7 @@ namespace Cerver {
 
 // The main thread loop.
 // Each thread waits on the condition variable until signaled.
-// Upon waking, threads grab whatever is in the work queue and execute
+// Upon waking, threads grab whatever is in the work queue and execute.
 void* SysiphusLoop(void* thread_pool) {
   ThreadPool* pool = static_cast<ThreadPool*>(thread_pool);
   pthread_mutex_lock(&(pool->q_lock_));

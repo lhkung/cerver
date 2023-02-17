@@ -10,6 +10,7 @@ namespace Cerver {
 // A thread pool based on POSIX threads.
 // To use this class, define a class that derives from [Task]
 // and override the Run() method.
+
 class ThreadPool {
   public:
     ThreadPool(int max_threads);

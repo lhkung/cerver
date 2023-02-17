@@ -69,6 +69,10 @@ private:
   int listen_port_;
   pthread_mutex_t loglock_;
   int num_conn_;
+  int num_read_;
+  int num_cache_;
+  size_t byte_read_;
+  size_t byte_cache_;
 };
 
 class HttpServerTask : public ThreadPool::Task {
