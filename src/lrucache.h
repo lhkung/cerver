@@ -150,7 +150,7 @@ class LRUStringCache {
 
     void GetKeys(std::string* keys) {
       for (auto it = queue_.begin(); it != queue_.end(); it++) {
-        *keys += *it + "\n";
+        *keys += *it + "<br>";
       } 
     }
 
