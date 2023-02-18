@@ -83,7 +83,7 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
 HttpServer::HttpServer(int max_thread, int listen_port, int cache_size, string dir, string logdir)
   : threadpool_(std::make_unique<ThreadPool>(max_thread)),
     log_(std::make_unique<Logger>(logdir, 1024 * 1024 * 1024)),
-    cache_(std::make_unique<LRUCache>(cache_size)),
+    cache_(std::make_unique<LRUStringCache>(cache_size)),
     dir_(dir),
     listen_port_(listen_port),
     stat_() {
@@ -218,6 +218,10 @@ void HttpServer::ProcessRequest(const HttpRequest& req, HttpResponse* res) {
     return;
   }
   string path;
+  if (req.uri_ == "/stat") {
+    SendStat(req, res);
+    return;
+  }
   if (req.uri_ == "/") {
      path = dir_ + "/index.html";
   } else {
@@ -353,6 +357,37 @@ int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
   return total_bytes;
 }
 
+void HttpServer::SendStat(const HttpRequest& req, HttpResponse* res) {
+  res->protocol_ = "HTTP/1.1";
+  res->status_code_ = 200;
+  res->reason_phrase_ = "OK";
+  res->AddHeader("Content-Type", "text/html");
+  res->has_body_ = true;
+  string cache_keys;
+  cache_->GetKeys(&cache_keys);
+
+  char* body = new char[4096];
+  int len = sprintf(body, "<html><h2>HttpServer status</h2><body><p>Listening on port %d<br>Number of threads: %d<br>Number of active connections: %d<br>Number of tasks in work queue: %ld<br>Cache size: %ld  / %ld bytes<br>Cache entries: %d<br>%s<br>Cache hit rate (time): %d / %d = %.2f<br>Cache hit rate (byte): %ld / %ld = %.2f<br>Cache entry incomplete: %d</p></body></html>",
+                          listen_port_,
+                          threadpool_->num_threads_running_,
+                          stat_.num_conn_,
+                          threadpool_->work_queue_.size(),
+                          cache_->Size(),
+                          cache_->Capacity(),
+                          cache_->Entry(),
+                          cache_keys.c_str(),
+                          stat_.num_cache_,
+                          stat_.num_read_,
+                          static_cast<float>(stat_.num_cache_) / static_cast<float>(stat_.num_read_),
+                          stat_.byte_cache_,
+                          stat_.byte_read_,
+                          static_cast<float>(stat_.byte_cache_) / static_cast<float>(stat_.byte_read_),
+                          stat_.incomplete_cache_entry_);
+  res->AddHeader("Content-Length", std::to_string(len));
+  res->body_ = string(body, len);
+  delete[] body;
+}
+
 void HttpServer::PrintStat() {
   std::cout << "HttpServer status\n";
   std::cout << "Listening on port " << listen_port_ << "\n";
@@ -365,7 +400,7 @@ void HttpServer::PrintStat() {
   std::cout << "Cache hit rate (byte): " << stat_.byte_cache_ << "/" << stat_.byte_read_ << " = " <<  static_cast<float>(stat_.byte_cache_) / static_cast<float>(stat_.byte_read_) << "\n";
   std::cout << "Cache entry incomplete: " << stat_.incomplete_cache_entry_ << std::endl;
   stat = false;
-} 
+}
 
 } // end namespace WebServer
 
@@ -430,7 +465,7 @@ int main(int argc, char** argv) {
   if (background) {
     pid_t pid = fork();
     if (pid == 0) {
-      unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1048576, string(argv[optind + 1]), "runlog");
+      unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1024 * 1024 * 4, string(argv[optind + 1]), "runlog");
       server->Run();
       exit(EXIT_SUCCESS);
     }
@@ -443,7 +478,7 @@ int main(int argc, char** argv) {
     std::cout << "pid = " << pid << std::endl;
     return EXIT_SUCCESS;
   }
-  unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1048576, string(argv[optind + 1]), "runlog");
+  unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1024 * 1024 * 4, string(argv[optind + 1]), "runlog");
   server->Run();
   return EXIT_SUCCESS;
 }

@@ -9,7 +9,7 @@
 #include "threadpool.h"
 #include "tcpconnection.h"
 #include "logger.h"
-#include "lru_cache.h"
+#include "lrucache.h"
 
 namespace Cerver {
 
@@ -60,6 +60,7 @@ public:
   int SendFile(const HttpResponse& res, TCPConnection* conn);
   std::string GetContentType(const std::string& path);
   void PrintStat();
+  void SendStat(const HttpRequest& req, HttpResponse* res);
 
   struct Stat {
     int num_conn_;
@@ -75,7 +76,7 @@ private:
 
   std::unique_ptr<ThreadPool> threadpool_;
   std::unique_ptr<Logger> log_;
-  std::unique_ptr<LRUCache> cache_;
+  std::unique_ptr<LRUStringCache> cache_;
   std::string dir_;
   int listen_port_;
   pthread_mutex_t loglock_;
