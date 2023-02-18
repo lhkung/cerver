@@ -15,6 +15,8 @@ using std::unordered_map;
 
 namespace Cerver {
 
+
+static unique_ptr<Server> server;
 volatile bool running = true;
 volatile bool stat = false;
 
@@ -465,8 +467,8 @@ int main(int argc, char** argv) {
   if (background) {
     pid_t pid = fork();
     if (pid == 0) {
-      unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1024 * 1024 * 4, string(argv[optind + 1]), "runlog");
-      server->Run();
+      Cerver::server = std::make_unique<Cerver::HttpServer>(64, port, 1024 * 1024 * 4, string(argv[optind + 1]), "runlog");
+      Cerver::server->Run();
       exit(EXIT_SUCCESS);
     }
     int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
@@ -478,7 +480,7 @@ int main(int argc, char** argv) {
     std::cout << "pid = " << pid << std::endl;
     return EXIT_SUCCESS;
   }
-  unique_ptr<Cerver::Server> server = std::make_unique<Cerver::HttpServer>(64, port, 1024 * 1024 * 4, string(argv[optind + 1]), "runlog");
-  server->Run();
+  Cerver::server = std::make_unique<Cerver::HttpServer>(64, port, 1024 * 1024 * 4, string(argv[optind + 1]), "runlog");
+  Cerver::server->Run();
   return EXIT_SUCCESS;
 }
