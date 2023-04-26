@@ -10,7 +10,7 @@ To run the server:<br>
 <code>httpserver run <resource_directory></code>
 
 To see the status of a running server:<br>
-<code>httpserver start</code>
+<code>httpserver stat</code>
 
 To terminate the server:<br>
 <code>httpserver end</code>
