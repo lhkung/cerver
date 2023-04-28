@@ -7,7 +7,7 @@ The server uses a thread pool to handle incoming http connections. Routes can be
 All C++ program is written in compliance with RAII paradigm.
 
 To run the server:<br>
-<code>bin/webserver run <resource_directory></code>
+<code>bin/webserver run</code>
 
 To see the status of a running server:<br>
 <code>bin/webserver stats</code>
