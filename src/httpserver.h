@@ -10,77 +10,66 @@
 #include "tcpconnection.h"
 #include "logger.h"
 #include "lrucache.h"
+#include "httprequest.h"
+#include "httpresponse.h"
 
 namespace Cerver {
-
-class HttpRequest {
-public:
-  HttpRequest() { }
-  virtual ~HttpRequest() { }
-  void AddHeader(const std::string& name, const std::string& value) {
-    headers_.insert({name, value});
-  }
-  std::string method_;
-  std::string uri_;
-  std::string protocol_;
-  std::unordered_map<std::string, std::string> headers_;
-  std::string body_;
-};
-
-class HttpResponse {
-public:
-  HttpResponse() : has_body_(false), has_file_(false){ }
-  virtual ~HttpResponse() { }
-  void AddHeader(const std::string& name, const std::string& value) {
-    headers_.insert({name, value});
-  }
-  std::string protocol_;
-  int status_code_;
-  std::string reason_phrase_;
-  std::unordered_map<std::string, std::string> headers_;
-  std::string body_;
-  std::string file_;
-  std::string uri_;
-  size_t file_size_;
-  bool has_body_;
-  bool has_file_;
-};
 
 class HttpServer : public Server {
 
 public:
+  typedef std::function<std::string(const HttpRequest&, HttpResponse*)> Route;
   HttpServer(int max_thread, int listen_port, int cache_size, std::string dir, std::string logdir);
   virtual ~HttpServer();
   void Run() override;
   void ThreadLoop(int comm_fd);
-  bool ParseRequest(std::string& header, HttpRequest* req);
-  void ProcessRequest(const HttpRequest& req, HttpResponse* res);
-  void SendResponse(const HttpResponse& res, TCPConnection* conn);
+  int PrepareRequest(const std::string& header, HttpRequest* req, TCPConnection* conn, Route** route);
+  void NoRoute(const HttpRequest& req, HttpResponse* res);
+  void SendResponse(HttpResponse* res, TCPConnection* conn, const std::string& body);
   void SetErrCode(int status_code, HttpResponse* res);
   int SendFile(const HttpResponse& res, TCPConnection* conn);
   std::string GetContentType(const std::string& path);
   void PrintStat();
-  void SendStat(const HttpRequest& req, HttpResponse* res);
+  void GetStats(const HttpRequest& req, HttpResponse* res);
+  Route* CollectPathParam(HttpRequest* req);
+  void CollectQueryParam(HttpRequest* req);
+  void Put(const std::string& route, Route lambda);
+  void Get(const std::string& route, Route lambda);
 
-  struct Stat {
-    int num_conn_;
-    int num_read_;
-    int num_cache_;
-    size_t byte_read_;
-    size_t byte_cache_;
-    int incomplete_cache_entry_;
-    Stat() : num_conn_(0), num_read_(0), num_cache_(0), byte_read_(0), byte_cache_(0), incomplete_cache_entry_(0) { }
+  class Stats {
+    public:
+      Stats();
+      ~Stats();
+      void IncConn();
+      void DecConn();
+      void IncRead();
+      void IncCache();
+      void IncByteRead(const size_t b);
+      void IncByteCache(const size_t b);
+      int GetConn() const;
+      int GetRead() const;
+      int GetCache() const;
+      size_t GetByteRead() const;
+      size_t GetByteCache() const;
+    private:
+      int num_conn_;
+      int num_read_;
+      int num_cache_;
+      size_t byte_read_;
+      size_t byte_cache_;
+      pthread_mutex_t lock_;
   };
 
-private:
 
+private:
   std::unique_ptr<ThreadPool> threadpool_;
   std::unique_ptr<Logger> log_;
   std::unique_ptr<LRUStringCache> cache_;
   std::string dir_;
   int listen_port_;
   pthread_mutex_t loglock_;
-  Stat stat_;
+  Stats stat_;
+  std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Route> > > routes_;
 };
 
 class HttpServerTask : public ThreadPool::Task {
@@ -93,11 +82,7 @@ public:
   HttpServer* server_;
 };
 
-static void LowerCase(std::string& str);
-static void Trim(std::string& str);
-static int Split(std::string& str, const std::string& delim, std::vector<std::string>* out);
-static bool IsNumber(const std::string& str);
-static const char* GetTime();
+static std::unique_ptr<HttpServer> server;
 
 } // end namespace WebServer
 
