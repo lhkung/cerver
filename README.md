@@ -15,6 +15,11 @@ To see the status of a running server:<br>
 To terminate the server:<br>
 <code>bin/webserver end</code>
 
+To define a route:
+<code>server->GET("/", [](const HttpRequest& req, HttpResponse* res) {
+  return "Hello World";
+})</code>
+
 Optional arguments:<br>
 <code>-p [port]</code>: specify the listening port.<br>
 <code>-t</code>: attach process to terminal.<br>
