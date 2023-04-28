@@ -58,7 +58,7 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
                                                {405, "Method Not Allowed"},
                                                {505, "HTTP Version not supported"}};
 
-HttpServer::HttpServer(int max_thread, int listen_port, string dir, string logdir)
+HttpServer::HttpServer(int max_thread, int listen_port, string logdir)
   : threadpool_(std::make_unique<ThreadPool>(max_thread)),
     log_(std::make_unique<Logger>(logdir, 1024 * 1024 * 1024)),
     listen_port_(listen_port),

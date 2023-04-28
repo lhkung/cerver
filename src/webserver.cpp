@@ -3,53 +3,11 @@
 #include <sys/stat.h>
 #include "httpserver.h"
 #include "utils.h"
+#include "routes.h"
 
 using std::string;
 using std::unique_ptr;
 using namespace Cerver;
-
-static string dir;
-
-void DefineGet() {
-  server->Get("/", [](const HttpRequest& req, HttpResponse* res) {
-    HttpServer::ReadFile(req, res, dir + "/index.html");
-    return "";
-  });
-
-  server->Get("/poetry", [](const HttpRequest& req, HttpResponse* res) {
-    HttpServer::ReadFile(req, res, dir + "/poetry.html");
-    return "";
-  });
-
-  server->Get("/translated", [](const HttpRequest& req, HttpResponse* res) {
-    HttpServer::ReadFile(req, res, dir + "/translated.html");
-    return "";
-  });
-
-  server->Get("/travel", [](const HttpRequest& req, HttpResponse* res) {
-    HttpServer::ReadFile(req, res, dir + "/map.html");
-    return "";
-  });
-
-  server->Get("/images/:imageFile", [](const HttpRequest& req, HttpResponse* res) {
-    string image_file;
-    req.PathParam("imageFile", &image_file);
-    HttpServer::ReadFile(req, res, dir + "/images/" + image_file);
-    return "";
-  });
-
-  server->Get("/CSS/:cssFile", [](const HttpRequest& req, HttpResponse* res) {
-    string css_file;
-    req.PathParam("cssFile", &css_file);
-    HttpServer::ReadFile(req, res, dir + "/CSS/" + css_file);
-    return "";
-  });
-
-  server->Get("/.env", [](const HttpRequest& req, HttpResponse* res) {
-    return "FUCK YOU";
-  });
-
-}
 
 int main(int argc, char** argv) {
   int port = 80;
@@ -75,14 +33,13 @@ int main(int argc, char** argv) {
     }
   }
   if (optind >= argc) {
-    std::cout << "./httpserver run <directory>\n";
-    std::cout << "./httpserver end" << std::endl;
+    std::cout << "./webserver run\n./webserver end" << std::endl;
     return EXIT_FAILURE;
   }
   if (string(argv[optind]) == "end") {
     int fd = open("runlog/process.txt", O_RDWR);
     if (fd == -1) {
-      std::cout << "No HttpServer is running" << std::endl;
+      std::cout << "No cerver is running" << std::endl;
       return EXIT_FAILURE;
     }
     pid_t pid;
@@ -95,7 +52,7 @@ int main(int argc, char** argv) {
   if (string(argv[optind]) == "stats") {
      int fd = open("runlog/process.txt", O_RDWR);
     if (fd == -1) {
-      std::cout << "No HttpServer is running" << std::endl;
+      std::cout << "No cerver is running" << std::endl;
       return EXIT_FAILURE;
     }
     pid_t pid;
@@ -105,7 +62,7 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
   }
   if (string(argv[optind]) != "run" || optind + 1 >= argc) {
-     std::cout << "./httpserver run <directory>" << std::endl;
+     std::cout << "./webserver run <directory>" << std::endl;
     return EXIT_FAILURE;
   }
   dir = string(argv[optind + 1]);
@@ -115,7 +72,7 @@ int main(int argc, char** argv) {
     pid = fork();
   }
   if (pid == 0) {
-    server = std::make_unique<HttpServer>(64, port, string(argv[optind + 1]), "runlog");
+    server = std::make_unique<HttpServer>(64, port, "runlog");
     DefineGet();
     server->Run();
     if (background) {
@@ -125,7 +82,7 @@ int main(int argc, char** argv) {
   int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
   write(fd, &pid, sizeof(pid_t));
   close(fd);
-  std::cout << "httpserver is running\n";
+  std::cout << "Cerver is running\n";
   std::cout << "Listenting to port " << port << "\n";
   std::cout << "Reading from directory " << argv[optind + 1] << "\n";
   std::cout << "pid = " << pid << std::endl;
