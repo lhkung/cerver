@@ -1,8 +1,8 @@
 # cerver
 
-<code>cerver</code> is a web server built in plain C++. No dependency is used beyond C++ standard library.
+<code>cerver</code> is a dynamic web server and a web dev framework built in plain C++. No dependency is used beyond C++ standard library.
 
-The server uses a thread pool to handle incoming http connections and maintains an <code>LRUCache</code> to store resources in memory for quick access.
+The server uses a thread pool to handle incoming http connections. Routes can be defined using lambda expressions.
 
 All C++ program is written in compliance with RAII paradigm.
 
