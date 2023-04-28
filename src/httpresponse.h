@@ -16,6 +16,7 @@ public:
   void SetProtocol(const std::string& protocol);
   void SetStatusCode(int status_code, const std::string& reason_phrase);
   void SetBody(const std::string& body);
+  void AppendBody(const std::string& body);
   void SetContentType(const std::string& type);
   void write(const std::string& content);
   bool Written() const;
@@ -23,16 +24,14 @@ public:
   const std::string& Reason() const;
   const std::string& Body() const;
   bool HasBody() const;
+  const std::unordered_map<std::string, std::string>& Headers() const; 
+private:
   int status_code_;
   std::string reason_phrase_;
   std::string protocol_;
   std::unordered_map<std::string, std::string> headers_;
   bool has_body_;
   std::string body_;
-  bool has_file_;
-  std::string file_;
-  std::string uri_;
-  size_t file_size_;
   TCPConnection* conn_;
   bool written_;
 };
