@@ -6,7 +6,6 @@
 #include "httpserver.h"
 #include "utils.h"
 
-#define DATA_BATCH 4194304 // 4 MB
 #define REQ_INVALID 1
 #define ROUTE_FOUND 2
 #define NO_ROUTE 3
@@ -22,7 +21,7 @@ namespace Cerver {
 volatile bool running = true;
 volatile bool stat = false;
 
-HttpServer::Stats::Stats() : num_conn_(0), num_read_(0), num_cache_(0), byte_read_(0), byte_cache_(0) {
+HttpServer::Stats::Stats() : num_conn_(0), num_req_(0) {
   pthread_mutex_init(&lock_, nullptr);
 }
 HttpServer::Stats::~Stats() {
@@ -38,31 +37,13 @@ void HttpServer::Stats::DecConn() {
   num_conn_--;
   pthread_mutex_unlock(&lock_);
 }
-void HttpServer::Stats::IncRead() {
+void HttpServer::Stats::IncReq() {
   pthread_mutex_lock(&lock_);
-  num_read_++;
-  pthread_mutex_unlock(&lock_);
-}
-void HttpServer::Stats::IncCache() {
-  pthread_mutex_lock(&lock_);
-  num_cache_++;
-  pthread_mutex_unlock(&lock_);
-}
-void HttpServer::Stats::IncByteRead(const size_t b) {
-  pthread_mutex_lock(&lock_);
-  byte_read_ += b;
-  pthread_mutex_unlock(&lock_);
-}
-void HttpServer::Stats::IncByteCache(const size_t b) {
-  pthread_mutex_lock(&lock_);
-  byte_cache_ += b;
+  num_req_++;
   pthread_mutex_unlock(&lock_);
 }
 int HttpServer::Stats::GetConn() const {return num_conn_;}
-int HttpServer::Stats::GetRead() const {return num_read_;}
-int HttpServer::Stats::GetCache() const {return num_cache_;}
-size_t HttpServer::Stats::GetByteRead() const {return byte_read_;}
-size_t HttpServer::Stats::GetByteCache() const {return byte_cache_;}
+int HttpServer::Stats::GetReq() const {return num_req_;}
 
 
 static void HandleSignal(int signum) {
@@ -77,11 +58,9 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
                                                {405, "Method Not Allowed"},
                                                {505, "HTTP Version not supported"}};
 
-HttpServer::HttpServer(int max_thread, int listen_port, int cache_size, string dir, string logdir)
+HttpServer::HttpServer(int max_thread, int listen_port, string dir, string logdir)
   : threadpool_(std::make_unique<ThreadPool>(max_thread)),
     log_(std::make_unique<Logger>(logdir, 1024 * 1024 * 1024)),
-    cache_(std::make_unique<LRUStringCache>(cache_size)),
-    dir_(dir),
     listen_port_(listen_port),
     stat_() 
 {
@@ -142,10 +121,8 @@ void HttpServer::ThreadLoop(int comm_fd) {
   TCPConnection conn = TCPConnection(comm_fd);
   while (true) {
     string header;
-    *log_ << "Attempt to read from socket\n"; 
     int ret = conn.ReadUntilDoubleCRLF(&header);
     if (ret <= 0) {
-      *log_ << "Read interrupted\n"; 
       if (errno == EINTR) {
         continue;
       }
@@ -156,33 +133,30 @@ void HttpServer::ThreadLoop(int comm_fd) {
     Route* route = nullptr;
     int req_status = PrepareRequest(header, &req, &conn, &route);
     *log_ << GetTime() << req.Method() << " " << req.URI() << " " << req.Protocol() << "\n";
+    stat_.IncReq();
     if (req_status == REQ_INVALID) {
       SetErrCode(404, &res);
       SendResponse(&res, &conn, res.Body());
       continue;
     }
     if (req_status == NO_ROUTE) {
-      NoRoute(req, &res);
+      SetErrCode(404, &res);
       SendResponse(&res, &conn, res.Body());
       continue;
     }
     string out = (*route)(req, &res);
     if (res.Written()) {
-      *log_ << GetTime() << "This route has written to client\n";
       conn.Close();
       return;
     }
     if (out.length() > 0) {
-      *log_ << GetTime() << "Send lambda's return value to client\n";
       SendResponse(&res, &conn, out);
       continue;
     }
     if (res.HasBody()) {
-      *log_ << GetTime() << "Send response body to client\n";
       SendResponse(&res, &conn, res.Body());
       continue;
     }
-    *log_ << GetTime() << "Send only header to client\n";
     SendResponse(&res, &conn, "");
   }
   conn.Close();
@@ -233,54 +207,18 @@ int HttpServer::PrepareRequest(const string& header, HttpRequest* req, TCPConnec
   return ROUTE_FOUND;
 }
 
-void HttpServer::NoRoute(const HttpRequest& req, HttpResponse* res) {
-  if (req.Method() != "get") {
-    SetErrCode(405, res);
-    return;
-  }
-  if (req.protocol_ != "http/1.1") {
-    SetErrCode(505, res);
-    return;
-  }
-  string path;
-  if (req.uri_ == "/") {
-     path = dir_ + "/index.html";
-  } else {
-    path = dir_ + "/" + req.uri_;
-  }
-  int file = open(path.c_str(), O_RDONLY);
-  if (file == -1) {
-    *log_ << path << " not found.\n"; 
-    SetErrCode(404, res);
-    return;
-  }
-  res->SetProtocol("HTTP/1.1");
-  res->SetStatusCode(200, "OK");
-  res->PutHeader("Content-Type", GetContentType(path));
-  res->has_file_ = true;
-  off_t size = lseek(file, 0, SEEK_END);
-  close(file);
-  res->file_size_ = static_cast<size_t>(size);
-  res->file_ = path;
-  res->uri_ = req.uri_;
-  res->PutHeader("Content-Length", std::to_string(size));
-}
-
 void HttpServer::SendResponse(HttpResponse* res, TCPConnection* conn, const string& body) {
   *log_ << GetTime() << "Sending response header " << res->StatusCode() << "\n";
   if (body.length() > 0) {
       res->PutHeader("Content-Length", std::to_string(body.length()));
   }
   conn->Send("HTTP/1.1 " + std::to_string(res->StatusCode()) + " " + res->Reason() + "\r\n");
-  for (auto it = res->headers_.begin(); it != res->headers_.end(); it++) {
+  for (auto it = res->Headers().begin(); it != res->Headers().end(); it++) {
     conn->Send(it->first + ": " + it->second + "\r\n");
   }
   conn->Send("\r\n");
   if (body.length() > 0) {
     conn->Send(body);
-  }
-  if (res->has_file_) {
-    SendFile(*res, conn);
   }
   *log_ << GetTime() << "Response sent\n";
 }
@@ -326,74 +264,30 @@ void HttpServer::SetErrCode(int err_code, HttpResponse* res) {
   if (it == err_codes.end()) {
     res->SetStatusCode(404, err_codes.at(404));
     res->PutHeader("Content-Type", "text/plain");
-    res->PutHeader("Content-Length", std::to_string(res->reason_phrase_.length()));
-    res->has_body_ = true;
-    res->SetBody(res->reason_phrase_);
+    res->PutHeader("Content-Length", std::to_string(res->Reason().length()));
+    res->SetBody(res->Reason());
     return;
   }
   res->SetStatusCode(err_code, it->second);
   res->PutHeader("Content-Type", "text/plain");
-  res->PutHeader("Content-Length", std::to_string(res->reason_phrase_.length()));
-  res->has_body_ = true;
-  res->SetBody(res->reason_phrase_);
-}
-
-int HttpServer::SendFile(const HttpResponse& res, TCPConnection* conn) {
-  string val;
-  if (cache_->Get(res.uri_, &val) == 0) {
-    if (val.length() == res.file_size_) {
-      conn->Send(val);
-      stat_.IncCache();
-      stat_.IncRead();
-      stat_.IncByteCache(val.length());
-      stat_.IncByteRead(val.length());
-      return val.length();
-    }
-  }
-  int file_fd = open(res.file_.c_str(), O_RDONLY);
-  char* buf = new char[DATA_BATCH];
-  size_t total_bytes = 0;
-  ssize_t bytes_read = read(file_fd, buf, DATA_BATCH);
-  while (bytes_read > 0) {
-    conn->Send(string(buf, bytes_read));
-    total_bytes += bytes_read;
-    bytes_read = read(file_fd, buf, DATA_BATCH);
-  }
-  if (total_bytes <= cache_->Capacity()) {
-    cache_->Put(res.uri_, string(buf, total_bytes));
-  }
-  delete[] buf;
-  stat_.IncRead();
-  stat_.IncByteRead(total_bytes);
-  return total_bytes;
+  res->PutHeader("Content-Length", std::to_string(res->Reason().length()));
+  res->SetBody(res->Reason());
 }
 
 void HttpServer::GetStats(const HttpRequest& req, HttpResponse* res) {
   res->SetProtocol("HTTP/1.1");
   res->SetStatusCode(200, "OK");
   res->PutHeader("Content-Type", "text/html");
-  res->has_body_ = true;
-  string cache_keys;
-  cache_->GetKeys(&cache_keys);
 
   char* body = new char[4096];
-  int len = sprintf(body, "<html><h2>HttpServer status</h2><body><p>Listening on port %d<br>Number of threads: %d<br>Number of active connections: %d<br>Number of tasks in work queue: %ld<br>Cache size: %ld  / %ld bytes<br>Cache entries: %d<br>%s<br>Cache hit rate (time): %d / %d = %.2f<br>Cache hit rate (byte): %ld / %ld = %.2f</p></body></html>",
+  int len = sprintf(body, "<html><h2>HttpServer status</h2><body><p>Listening on port %d<br>Number of threads: %d<br>Number of active connections: %d<br>Number of tasks in work queue: %ld<br>Accumulative number of requests: %d</p></body></html>",
                           listen_port_,
                           threadpool_->num_threads_running_,
                           stat_.GetConn(),
                           threadpool_->work_queue_.size(),
-                          cache_->Size(),
-                          cache_->Capacity(),
-                          cache_->Entry(),
-                          cache_keys.c_str(),
-                          stat_.GetCache(),
-                          stat_.GetRead(),
-                          static_cast<float>(stat_.GetCache()) / static_cast<float>(stat_.GetRead()),
-                          stat_.GetByteCache(),
-                          stat_.GetByteRead(),
-                          static_cast<float>(stat_.GetByteCache()) / static_cast<float>(stat_.GetByteRead()));
+                          stat_.GetReq());
   res->PutHeader("Content-Length", std::to_string(len));
-  res->body_ = string(body, len);
+  res->SetBody(string(body, len));
   delete[] body;
 }
 
@@ -402,11 +296,7 @@ void HttpServer::PrintStat() {
   std::cout << "Listening on port " << listen_port_ << "\n";
   std::cout << "Number of threads: " << threadpool_->num_threads_running_ << "\n";
   std::cout << "Number of active connections: " << stat_.GetConn() << "\n";
-  std::cout << "Number of tasks in work queue: " << threadpool_->work_queue_.size() << "\n";
-  std::cout << "Cache size: " << cache_->Size() << "\n";
-  std::cout << "Cache entries: " << cache_->Entry() << "\n";
-  std::cout << "Cache hit rate (time): " << stat_.GetCache() << "/" << stat_.GetRead() << " = " <<  static_cast<float>(stat_.GetCache()) / static_cast<float>(stat_.GetRead()) << "\n";
-  std::cout << "Cache hit rate (byte): " << stat_.GetByteCache() << "/" << stat_.GetByteRead() << " = " <<  static_cast<float>(stat_.GetByteCache()) / static_cast<float>(stat_.GetByteRead()) << std::endl;
+  std::cout << "Number of tasks in work queue: " << threadpool_->work_queue_.size() << std::endl;
   stat = false;
 }
 
@@ -481,6 +371,29 @@ void HttpServer::Get(const string& route, Route lambda) {
     routes_.emplace("get", unordered_map<string, unique_ptr<Route>>());
   } 
   routes_.at("get").emplace(route, std::make_unique<Route>(lambda));
+}
+
+void HttpServer::ReadFile(const HttpRequest& req, HttpResponse* res, const string& path) {
+  int file_fd = open(path.c_str(), O_RDONLY);
+  if (file_fd == -1) {
+    HttpServer::SetErrCode(404, res);
+    return;
+  }
+  char* buf = new char[DATA_BATCH];
+  size_t total_bytes = 0;
+  while (true) {
+    ssize_t bytes_read = read(file_fd, buf, DATA_BATCH);
+    if (bytes_read <= 0) {
+       break;
+    }
+    res->AppendBody(string(buf, bytes_read));
+    total_bytes += bytes_read;
+  }
+  res->SetProtocol("HTTP/1.1");
+  res->SetStatusCode(200, "OK");
+  res->PutHeader("Content-Type", HttpServer::GetContentType(path));
+  res->PutHeader("Content-Length", std::to_string(total_bytes));
+  delete[] buf;
 }
 
 } // end namespace WebServer

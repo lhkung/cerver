@@ -1,6 +1,8 @@
 #ifndef HTTP_SERVER_H_
 #define HTTP_SERVER_H_
 
+#define DATA_BATCH 4194304 // 4 MB
+
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -19,16 +21,12 @@ class HttpServer : public Server {
 
 public:
   typedef std::function<std::string(const HttpRequest&, HttpResponse*)> Route;
-  HttpServer(int max_thread, int listen_port, int cache_size, std::string dir, std::string logdir);
+  HttpServer(int max_thread, int listen_port, std::string dir, std::string logdir);
   virtual ~HttpServer();
   void Run() override;
   void ThreadLoop(int comm_fd);
   int PrepareRequest(const std::string& header, HttpRequest* req, TCPConnection* conn, Route** route);
-  void NoRoute(const HttpRequest& req, HttpResponse* res);
   void SendResponse(HttpResponse* res, TCPConnection* conn, const std::string& body);
-  void SetErrCode(int status_code, HttpResponse* res);
-  int SendFile(const HttpResponse& res, TCPConnection* conn);
-  std::string GetContentType(const std::string& path);
   void PrintStat();
   void GetStats(const HttpRequest& req, HttpResponse* res);
   Route* CollectPathParam(HttpRequest* req);
@@ -36,27 +34,22 @@ public:
   void Put(const std::string& route, Route lambda);
   void Get(const std::string& route, Route lambda);
 
+  static void SetErrCode(int status_code, HttpResponse* res);
+  static void ReadFile(const HttpRequest& req, HttpResponse* res, const std::string& path);
+  static std::string GetContentType(const std::string& path);
+
   class Stats {
     public:
       Stats();
       ~Stats();
       void IncConn();
       void DecConn();
-      void IncRead();
-      void IncCache();
-      void IncByteRead(const size_t b);
-      void IncByteCache(const size_t b);
+      void IncReq();
       int GetConn() const;
-      int GetRead() const;
-      int GetCache() const;
-      size_t GetByteRead() const;
-      size_t GetByteCache() const;
+      int GetReq() const;
     private:
-      int num_conn_;
-      int num_read_;
-      int num_cache_;
-      size_t byte_read_;
-      size_t byte_cache_;
+      int32_t num_conn_;
+      uint32_t num_req_;
       pthread_mutex_t lock_;
   };
 
@@ -64,8 +57,6 @@ public:
 private:
   std::unique_ptr<ThreadPool> threadpool_;
   std::unique_ptr<Logger> log_;
-  std::unique_ptr<LRUStringCache> cache_;
-  std::string dir_;
   int listen_port_;
   pthread_mutex_t loglock_;
   Stats stat_;
