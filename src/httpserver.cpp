@@ -45,7 +45,6 @@ void HttpServer::Stats::IncReq() {
 int HttpServer::Stats::GetConn() const {return num_conn_;}
 int HttpServer::Stats::GetReq() const {return num_req_;}
 
-
 static void HandleSignal(int signum) {
   if (signum == SIGINT) {
     running = false;
@@ -360,8 +359,8 @@ void HttpServer::CollectQueryParam(HttpRequest* req) {
 
 void HttpServer::Put(const string& route, Route lambda) {
   if (server == nullptr) {
-    server = std::make_unique<HttpServer>(32, 80);
-    server->Run();
+    // server = std::make_unique<HttpServer>(32, 80);
+    // server->Run();
   }
   auto it = routes_.find("put");
   if (it == routes_.end()) {

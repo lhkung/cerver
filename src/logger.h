@@ -13,8 +13,8 @@ namespace Cerver {
 class Logger {
     public:
       Logger(std::string dir, size_t max_size) : max_size_(max_size) {
-        // mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        std::string path = "run.log";
+        mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        std::string path = dir + "/run.log";
         logfd_ = open(path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
         if (logfd_ == -1) {
           std::cout << "Failed to open log: " << errno << std::endl;
