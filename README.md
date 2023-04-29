@@ -10,6 +10,8 @@ To run the server with self-defined route:<br>
 ```
 #include "httpserver.h"
 
+using namespace Cerver;
+
 int main(int argc, char** argv) {
   server->GET("/", [](const HttpRequest& req, HttpResponse* res) {
     return "Hello World";
