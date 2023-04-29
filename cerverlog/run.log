@@ -1,0 +1,10 @@
+Sat Apr 29 12:07:31 2023: Server starts
+Sat Apr 29 12:07:35 2023: Connection from 127.0.0.1:56949
+Sat Apr 29 12:07:35 2023: get / http/1.1
+Sat Apr 29 12:07:35 2023: Sending response header 200
+Sat Apr 29 12:07:35 2023: Response sent
+Sat Apr 29 12:07:37 2023: get /favicon.ico http/1.1
+Sat Apr 29 12:07:37 2023: Sending response header 404
+Sat Apr 29 12:07:37 2023: Response sent
+Sat Apr 29 12:07:38 2023: Connection closed
+Sat Apr 29 12:07:40 2023: Server shut down

@@ -358,10 +358,10 @@ void HttpServer::CollectQueryParam(HttpRequest* req) {
 }
 
 void HttpServer::Put(const string& route, Route lambda) {
-  if (server == nullptr) {
-    // server = std::make_unique<HttpServer>(32, 80);
-    // server->Run();
-  }
+  // if (server == nullptr) {
+  //   server = std::make_unique<HttpServer>(32, 80);
+  //   server->Run();
+  // }
   auto it = routes_.find("put");
   if (it == routes_.end()) {
     routes_.emplace("put", unordered_map<string, unique_ptr<Route>>());
@@ -369,10 +369,10 @@ void HttpServer::Put(const string& route, Route lambda) {
   routes_.at("put").emplace(route, std::make_unique<Route>(lambda));
 }
 void HttpServer::Get(const string& route, Route lambda) {
-  if (server == nullptr) {
-    // server = std::make_unique<HttpServer>(32, 80);
-    // server->Run();
-  }
+  // if (server == nullptr) {
+  //   server = std::make_unique<HttpServer>(32, 80);
+  //   server->Run();
+  // }
   auto it = routes_.find("get");
   if (it == routes_.end()) {
     routes_.emplace("get", unordered_map<string, unique_ptr<Route>>());
