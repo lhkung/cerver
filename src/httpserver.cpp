@@ -58,9 +58,9 @@ static unordered_map<int, string> err_codes = {{404, "Not Found"},
                                                {405, "Method Not Allowed"},
                                                {505, "HTTP Version not supported"}};
 
-HttpServer::HttpServer(int max_thread, int listen_port, string logdir)
+HttpServer::HttpServer(int max_thread, int listen_port)
   : threadpool_(std::make_unique<ThreadPool>(max_thread)),
-    log_(std::make_unique<Logger>(logdir, 1024 * 1024 * 1024)),
+    log_(std::make_unique<Logger>("cerverlog", 1024 * 1024 * 1024)),
     listen_port_(listen_port),
     stat_() 
 {
@@ -359,6 +359,9 @@ void HttpServer::CollectQueryParam(HttpRequest* req) {
 }
 
 void HttpServer::Put(const string& route, Route lambda) {
+  if (server == nullptr) {
+    server = std::make_unique<HttpServer>(32, 80);
+  }
   auto it = routes_.find("put");
   if (it == routes_.end()) {
     routes_.emplace("put", unordered_map<string, unique_ptr<Route>>());
@@ -366,6 +369,9 @@ void HttpServer::Put(const string& route, Route lambda) {
   routes_.at("put").emplace(route, std::make_unique<Route>(lambda));
 }
 void HttpServer::Get(const string& route, Route lambda) {
+  if (server == nullptr) {
+    server = std::make_unique<HttpServer>(32, 80);
+  }
   auto it = routes_.find("get");
   if (it == routes_.end()) {
     routes_.emplace("get", unordered_map<string, unique_ptr<Route>>());

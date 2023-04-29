@@ -21,7 +21,7 @@ class HttpServer : public Server {
 
 public:
   typedef std::function<std::string(const HttpRequest&, HttpResponse*)> Route;
-  HttpServer(int max_thread, int listen_port, std::string logdir);
+  HttpServer(int max_thread, int listen_port);
   virtual ~HttpServer();
   void Run() override;
   void ThreadLoop(int comm_fd);

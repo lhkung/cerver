@@ -66,13 +66,12 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   dir = string(argv[optind + 1]);
-  mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   pid_t pid = 0;
   if (background) {
     pid = fork();
   }
   if (pid == 0) {
-    server = std::make_unique<HttpServer>(64, port, "runlog");
+    server = std::make_unique<HttpServer>(64, port);
     DefineGet();
     server->Run();
     if (background) {
