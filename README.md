@@ -6,16 +6,7 @@ The server uses a thread pool to handle incoming http connections. Routes can be
 
 All C++ program is written in compliance with RAII paradigm.
 
-To run the server:<br>
-<code>bin/webserver run</code>
-
-To see the status of a running server:<br>
-<code>bin/webserver stats</code>
-
-To terminate the server:<br>
-<code>bin/webserver end</code>
-
-To define a route:<br>
+To run the server with self-defined route:<br>
 ```
 #include "httpserver.h"
 
@@ -26,6 +17,17 @@ int main(int argc, char** argv) {
   return 0;
 }
 ```
+
+There is also a example server:
+
+To run the server:<br>
+<code>bin/webserver run</code>
+
+To see the status of a running server:<br>
+<code>bin/webserver stats</code>
+
+To terminate the server:<br>
+<code>bin/webserver end</code>
 
 Optional arguments:<br>
 <code>-p [port]</code>: specify the listening port.<br>
