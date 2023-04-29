@@ -15,7 +15,7 @@ using namespace Cerver;
 int main(int argc, char** argv) {
   server->GET("/", [](const HttpRequest& req, HttpResponse* res) {
     return "Hello World";
-  })
+  });
   return 0;
 }
 ```
