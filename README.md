@@ -13,7 +13,7 @@ To run the server with self-defined route:<br>
 using namespace Cerver;
 
 int main(int argc, char** argv) {
-  server->GET("/", [](const HttpRequest& req, HttpResponse* res) {
+  server->Get("/", [](const HttpRequest& req, HttpResponse* res) {
     return "Hello World";
   });
   return 0;
