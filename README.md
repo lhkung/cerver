@@ -17,9 +17,14 @@ To terminate the server:<br>
 
 To define a route:<br>
 ```
-server->GET("/", [](const HttpRequest& req, HttpResponse* res) {
-  return "Hello World";
-})
+#include "httpserver.h"
+
+int main(int argc, char** argv) {
+  server->GET("/", [](const HttpRequest& req, HttpResponse* res) {
+    return "Hello World";
+  })
+  return 0;
+}
 ```
 
 Optional arguments:<br>
