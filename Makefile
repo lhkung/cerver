@@ -2,7 +2,7 @@ mkdir = mkdir
 bindir = ./bin
 rm = rm -r
 LIBRARY = $(bindir)/server.o $(bindir)/tcpconnection.o $(bindir)/threadpool.o $(bindir)/httprequest.o $(bindir)/httpresponse.o $(bindir)/utils.o $(bindir)/httpserver.o
-TARGETS = $(LIBRARY) $(bindir)/webserver
+TARGETS = $(LIBRARY) $(bindir)/angie
 all: $(bindir) $(TARGETS)
 clean:
 	rm -r bin
@@ -23,5 +23,5 @@ $(bindir)/threadpool.o: src/threadpool.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
 $(bindir)/httpserver.o: src/httpserver.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
-$(bindir)/webserver: src/webserver.cpp $(LIBRARY)
+$(bindir)/angie: src/angie.cpp $(LIBRARY)
 	g++ -Wall -std=c++17 -lpthread $^ -o $@

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <ctime>
 
 namespace Cerver {
@@ -12,11 +13,11 @@ namespace Cerver {
 class Logger {
     public:
       Logger(std::string dir, size_t max_size) : max_size_(max_size) {
-        mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        std::string path = dir + "/run.log";
+        // mkdir("runlog", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        std::string path = "run.log";
         logfd_ = open(path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
         if (logfd_ == -1) {
-          std::cout << errno << std::endl;
+          std::cout << "Failed to open log: " << errno << std::endl;
         }
       }
       virtual ~Logger() { }
