@@ -41,7 +41,4 @@ void DefineGet() {
     return "";
   });
 
-  server->Get("/.env", [](const HttpRequest& req, HttpResponse* res) {
-    return "FUCK YOU";
-  });
 }
