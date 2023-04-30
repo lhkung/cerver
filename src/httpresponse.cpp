@@ -20,16 +20,16 @@ bool HttpResponse::Written() const {return written_;}
 bool HttpResponse::HasBody() const {return has_body_;}
 const std::unordered_map<std::string, std::string>& HttpResponse::Headers() const {return headers_;}
 void HttpResponse::write(const string& content) {
-    if (!written_) {
-    written_ = true;
-    PutHeader("Connection", "close");
-    conn_->Send("HTTP/1.1 " + std::to_string(status_code_) + " " + reason_phrase_ + "\r\n");
-    for (auto it = headers_.begin(); it != headers_.end(); it++) {
-        conn_->Send(it->first + ": " + it->second + "\r\n");
-    }
-    conn_->Send("\r\n");
-    }
-    conn_->Send(content);
+	if (!written_) {
+	written_ = true;
+	PutHeader("Connection", "close");
+	conn_->Send("HTTP/1.1 " + std::to_string(status_code_) + " " + reason_phrase_ + "\r\n");
+	for (auto it = headers_.begin(); it != headers_.end(); it++) {
+			conn_->Send(it->first + ": " + it->second + "\r\n");
+	}
+	conn_->Send("\r\n");
+	}
+	conn_->Send(content);
 }
 
 } // namespace Cerver
