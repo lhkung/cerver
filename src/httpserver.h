@@ -73,7 +73,7 @@ public:
   HttpServer* server_;
 };
 
-static std::unique_ptr<HttpServer> server;
+static std::unique_ptr<HttpServer> server = std::make_unique<HttpServer>(32, 80);
 
 } // end namespace WebServer
 

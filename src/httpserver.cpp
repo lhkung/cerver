@@ -12,13 +12,12 @@
 
 using std::string;
 using std::unique_ptr;
-using std::shared_ptr;
 using std::vector;
 using std::unordered_map;
 
 namespace Cerver {
 
-volatile bool running = true;
+volatile bool running = false;
 volatile bool stat = false;
 
 HttpServer::Stats::Stats() : num_conn_(0), num_req_(0) {
@@ -61,13 +60,9 @@ HttpServer::HttpServer(int max_thread, int listen_port)
   : threadpool_(std::make_unique<ThreadPool>(max_thread)),
     log_(std::make_unique<Logger>("cerverlog", 1024 * 1024 * 1024)),
     listen_port_(listen_port),
-    stat_() 
+    stat_()
 {
     pthread_mutex_init(&loglock_, nullptr);
-    Get("/stats", [this](const HttpRequest& req, HttpResponse* res) {
-      GetStats(req, res);
-      return "";
-    });
 }
 
 HttpServer::~HttpServer() {
@@ -75,6 +70,11 @@ HttpServer::~HttpServer() {
 }
 
 void HttpServer::Run() {
+  running = true;
+  // Get("/stats", [this](const HttpRequest& req, HttpResponse* res) {
+  //     GetStats(req, res);
+  //     return "";
+  // });
   PrepareToHandleSignal(SIGINT, HandleSignal);
   PrepareToHandleSignal(SIGUSR1, HandleSignal);
   *log_ << GetTime() << "Server starts\n";
@@ -109,12 +109,9 @@ void HttpServer::Run() {
 }
 
 
-HttpServerTask::HttpServerTask(int comm_fd, HttpServer* server) 
-  : comm_fd_(comm_fd), server_(server) { }
+HttpServerTask::HttpServerTask(int comm_fd, HttpServer* server) : comm_fd_(comm_fd), server_(server) { }
 HttpServerTask::~HttpServerTask() { }
-void HttpServerTask::Run() {
-  server_->ThreadLoop(comm_fd_);
-}
+void HttpServerTask::Run() { server_->ThreadLoop(comm_fd_); }
 
 void HttpServer::ThreadLoop(int comm_fd) {
   TCPConnection conn = TCPConnection(comm_fd);
@@ -357,29 +354,6 @@ void HttpServer::CollectQueryParam(HttpRequest* req) {
 		return;
 }
 
-void HttpServer::Put(const string& route, Route lambda) {
-  // if (server == nullptr) {
-  //   server = std::make_unique<HttpServer>(32, 80);
-  //   server->Run();
-  // }
-  auto it = routes_.find("put");
-  if (it == routes_.end()) {
-    routes_.emplace("put", unordered_map<string, unique_ptr<Route>>());
-  } 
-  routes_.at("put").emplace(route, std::make_unique<Route>(lambda));
-}
-void HttpServer::Get(const string& route, Route lambda) {
-  // if (server == nullptr) {
-  //   server = std::make_unique<HttpServer>(32, 80);
-  //   server->Run();
-  // }
-  auto it = routes_.find("get");
-  if (it == routes_.end()) {
-    routes_.emplace("get", unordered_map<string, unique_ptr<Route>>());
-  } 
-  routes_.at("get").emplace(route, std::make_unique<Route>(lambda));
-}
-
 void HttpServer::ReadFile(const HttpRequest& req, HttpResponse* res, const string& path) {
   int file_fd = open(path.c_str(), O_RDONLY);
   if (file_fd == -1) {
@@ -401,6 +375,21 @@ void HttpServer::ReadFile(const HttpRequest& req, HttpResponse* res, const strin
   res->PutHeader("Content-Type", HttpServer::GetContentType(path));
   res->PutHeader("Content-Length", std::to_string(total_bytes));
   delete[] buf;
+}
+
+void HttpServer::Put(const string& route, Route lambda) {
+  auto it = routes_.find("put");
+  if (it == routes_.end()) {
+    routes_.emplace("put", unordered_map<string, unique_ptr<Route>>());
+  } 
+  routes_.at("put").emplace(route, std::make_unique<Route>(lambda));
+}
+void HttpServer::Get(const string& route, Route lambda) {
+  auto it = routes_.find("get");
+  if (it == routes_.end()) {
+    routes_.emplace("get", unordered_map<string, unique_ptr<Route>>());
+  } 
+  routes_.at("get").emplace(route, std::make_unique<Route>(lambda));
 }
 
 } // end namespace WebServer

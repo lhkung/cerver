@@ -1,6 +1,5 @@
 #include "httpserver.h"
 
-
 using std::string;
 using namespace Cerver;
 
