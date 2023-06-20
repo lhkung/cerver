@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   if (string(argv[optind]) == "end") {
-    int fd = open("runlog/process.txt", O_RDWR);
+    int fd = open("cerverlog/process.txt", O_RDWR);
     if (fd == -1) {
       std::cout << "No cerver is running" << std::endl;
       return EXIT_FAILURE;
@@ -46,11 +46,11 @@ int main(int argc, char** argv) {
     read(fd, &pid, sizeof(pid_t));
     kill(pid, SIGINT);
     close(fd);
-    remove("runlog/process.txt");
+    remove("cerverlog/process.txt");
     return EXIT_SUCCESS;
   }
   if (string(argv[optind]) == "stats") {
-     int fd = open("runlog/process.txt", O_RDWR);
+     int fd = open("cerverlog/process.txt", O_RDWR);
     if (fd == -1) {
       std::cout << "No cerver is running" << std::endl;
       return EXIT_FAILURE;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
       exit(EXIT_SUCCESS);
     }
   }
-  int fd = open("runlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
+  int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
   write(fd, &pid, sizeof(pid_t));
   close(fd);
   std::cout << "Cerver is running\n";
