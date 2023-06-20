@@ -42,11 +42,8 @@ int TCPConnection::ReadFromSocket() {
   int res;
   char buffer[1024];
   res = read(sockfd_, buffer, 1024);
-  if (res == -1) {
-    return -1;
-  }
-  if (res == 0) {
-    return 0;
+  if (res <= 0) {
+    return res;
   }
   buff_ += string(buffer, res);
   return res;
