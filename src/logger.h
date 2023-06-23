@@ -55,6 +55,6 @@ class Logger {
       int max_size_;
 };
 
-} // namespace WebServer
+} // namespace Cerver
 
 #endif

@@ -47,4 +47,4 @@ void Server::PrepareToHandleSignal(int signal, void (*SignalHandler)(int)) {
   sigaction(signal, &sa, nullptr);
 }
 
-} // namespace WebServer
+} // namespace Cerver

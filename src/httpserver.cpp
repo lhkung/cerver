@@ -392,4 +392,4 @@ void HttpServer::Get(const string& route, Route lambda) {
   routes_.at("get").emplace(route, std::make_unique<Route>(lambda));
 }
 
-} // end namespace WebServer
+} // end namespace Cerver

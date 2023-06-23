@@ -75,7 +75,7 @@ public:
 
 static std::unique_ptr<HttpServer> server = std::make_unique<HttpServer>(32, 80);
 
-} // end namespace WebServer
+} // end namespace Cerver
 
 
 #endif

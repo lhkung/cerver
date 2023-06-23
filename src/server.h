@@ -16,6 +16,6 @@ class Server {
     void PrepareToHandleSignal(int signal, void (*SignalHandler)(int));
 };
 
-} // namspace WebServer
+} // namspace Cerver
 
 #endif

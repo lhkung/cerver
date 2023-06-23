@@ -33,6 +33,6 @@ class ThreadPool {
     std::vector<pthread_t> thread_array_;
 };
 
-} // namespace WebServer
+} // namespace Cerver
 
 #endif

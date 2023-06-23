@@ -115,4 +115,4 @@ int TCPConnection::WriteToSocket(int fd, const string& content) {
   return bytes_written;
 }
 
-} // end namespace WebServer
+} // end namespace Cerver
