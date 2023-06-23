@@ -61,20 +61,12 @@ HttpServer::HttpServer(int max_thread, int listen_port)
     log_(std::make_unique<Logger>("cerverlog", 1024 * 1024 * 1024)),
     listen_port_(listen_port),
     stat_()
-{
-    pthread_mutex_init(&loglock_, nullptr);
-}
+{ std::cout << "Constructed" << std::endl;}
 
-HttpServer::~HttpServer() {
-  pthread_mutex_destroy(&loglock_);
-}
+HttpServer::~HttpServer() { }
 
 void HttpServer::Run() {
   running = true;
-  // Get("/stats", [this](const HttpRequest& req, HttpResponse* res) {
-  //     GetStats(req, res);
-  //     return "";
-  // });
   PrepareToHandleSignal(SIGINT, HandleSignal);
   PrepareToHandleSignal(SIGUSR1, HandleSignal);
   *log_ << GetTime() << "Server starts\n";
@@ -388,7 +380,7 @@ void HttpServer::Get(const string& route, Route lambda) {
   auto it = routes_.find("get");
   if (it == routes_.end()) {
     routes_.emplace("get", unordered_map<string, unique_ptr<Route>>());
-  } 
+  }
   routes_.at("get").emplace(route, std::make_unique<Route>(lambda));
 }
 

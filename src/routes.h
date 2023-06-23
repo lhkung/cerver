@@ -40,4 +40,8 @@ void DefineGet() {
     return "";
   });
 
+  server->Get("/stats", [](const HttpRequest& req, HttpResponse* res) {
+    server->GetStats(req, res);
+    return "";
+  });
 }

@@ -66,25 +66,37 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   dir = string(argv[optind + 1]);
-  pid_t pid = 0;
   if (background) {
+    pid_t pid = 0;
     pid = fork();
-  }
-  if (pid == 0) {
-    server = std::make_unique<HttpServer>(64, port);
-    DefineGet();
-    server->Run();
-    if (background) {
+    if (pid == 0) {
+      server = std::make_unique<HttpServer>(32, 80);
+      DefineGet();
+      server->Run();
       exit(EXIT_SUCCESS);
+    } else {
+      int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
+      write(fd, &pid, sizeof(pid_t));
+      close(fd);
+      std::cout << "Webserver is running\n";
+      std::cout << "Listenting on port " << port << "\n";
+      std::cout << "Reading from directory " << argv[optind + 1] << "\n";
+      std::cout << "pid = " << pid << std::endl;
+      return EXIT_SUCCESS;
     }
+  } else {
+    server = std::make_unique<HttpServer>(32, 80);
+    DefineGet();
+    pid_t pid = getpid();
+    int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
+    write(fd, &pid, sizeof(pid_t));
+    close(fd);
+    std::cout << "Webserver is running\n";
+    std::cout << "Listenting on port " << port << "\n";
+    std::cout << "Reading from directory " << argv[optind + 1] << "\n";
+    std::cout << "pid = " << pid << std::endl;
+    server->Run();
+    return EXIT_SUCCESS;
   }
-  int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
-  write(fd, &pid, sizeof(pid_t));
-  close(fd);
-  std::cout << "Cerver is running\n";
-  std::cout << "Listenting to port " << port << "\n";
-  std::cout << "Reading from directory " << argv[optind + 1] << "\n";
-  std::cout << "pid = " << pid << std::endl;
-  return EXIT_SUCCESS;
   
 }

@@ -48,17 +48,15 @@ public:
       int GetConn() const;
       int GetReq() const;
     private:
-      int32_t num_conn_;
+      uint32_t num_conn_;
       uint32_t num_req_;
       pthread_mutex_t lock_;
   };
-
 
 private:
   std::unique_ptr<ThreadPool> threadpool_;
   std::unique_ptr<Logger> log_;
   int listen_port_;
-  pthread_mutex_t loglock_;
   Stats stat_;
   std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Route> > > routes_;
 };
@@ -73,7 +71,7 @@ public:
   HttpServer* server_;
 };
 
-static std::unique_ptr<HttpServer> server = std::make_unique<HttpServer>(32, 80);
+static std::unique_ptr<HttpServer> server;
 
 } // end namespace Cerver
 
