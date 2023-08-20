@@ -13,12 +13,13 @@ namespace Cerver {
 
  row length    (4 bytes)
  column length (4 bytes)
- operation         (4 bytes)
- value length      (4 bytes)
+ operation     (4 bytes)
+ value length  (4 bytes)
  row
  column
  value
  */
+
 class CommitLog {
 public:
 	CommitLog(const std::string& tableName, const std::string& storeDir);
@@ -43,7 +44,7 @@ private:
                      std::string* col, 
                      std::string* val);
   std::string storeDir_;
-  int logfd_;  
+  int logfd_;
 };
 }
 // namespace Cerver
