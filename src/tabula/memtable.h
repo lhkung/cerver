@@ -16,6 +16,7 @@ class MemTable : public Table {
     Result Get(const std::string& row, const std::string& col, std::string* val) override;
     Result Delete(const std::string& row, const std::string& col) override;
     uint64_t Size();
+    uint64_t Capacity();
   
   private:
     pthread_mutex_t lock_;

@@ -69,4 +69,8 @@ uint64_t MemTable::Size() {
   return size_;
 }
 
+uint64_t MemTable::Capacity() {
+  return capacity_;
+}
+
 } // namespace Cerver
