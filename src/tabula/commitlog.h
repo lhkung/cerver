@@ -21,16 +21,16 @@ namespace Cerver {
  */
 class CommitLog {
 public:
-	CommitLog(const std::string& tablename, const std::string& store_dir);
-	CommitLog(const char* dir, char* logname);
+	CommitLog(const std::string& tableName, const std::string& storeDir);
+	CommitLog(const char* dir, char* logName);
 	~CommitLog();
 	int LogPut(const std::string& row, const std::string& col, const std::string& val);
 	int LogDelete(const std::string& row, const std::string& col);
 	struct CommitMetaData {
-		uint32_t row_len;
-		uint32_t col_len;
+		uint32_t rowLen;
+		uint32_t colLen;
 		uint32_t operation;
-		uint32_t val_len;
+		uint32_t valLen;
 	};
 	void Clear();
 	void Replay(Table* memtable);
@@ -42,7 +42,7 @@ private:
 	int ReadNextCommit(std::string* row,
                      std::string* col, 
                      std::string* val);
-  std::string store_dir_;
+  std::string storeDir_;
   int logfd_;  
 };
 }

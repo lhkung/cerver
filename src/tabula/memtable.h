@@ -18,6 +18,7 @@ class MemTable : public Table {
   private:
     pthread_mutex_t lock_;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string> > memtable_;
+    uint64_t size_;
 };
 
 } // namespace Cerver

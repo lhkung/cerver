@@ -13,49 +13,49 @@ MemTable::~MemTable() {
 }
 Table::Result MemTable::Put(const std::string& row, const std::string& col, const std::string& val) {
   pthread_mutex_lock(&lock_);
-  auto row_it = memtable_.find(row);
-  if (row_it == memtable_.end()) {
-    row_it = memtable_.emplace(string(row), unordered_map<string, string>()).first;
+  auto rowIt = memtable_.find(row);
+  if (rowIt == memtable_.end()) {
+    rowIt = memtable_.emplace(string(row), unordered_map<string, string>()).first;
   }
-  auto col_it = row_it->second.find(col);
-  if (col_it == row_it->second.end()) {
-    row_it->second.emplace(string(col), string(val));
+  auto colIt = rowIt->second.find(col);
+  if (colIt == rowIt->second.end()) {
+    rowIt->second.emplace(string(col), string(val));
     pthread_mutex_unlock(&lock_);
     return SUCCESS;
   }
-  col_it->second = val;
+  colIt->second = val;
   pthread_mutex_unlock(&lock_);
   return OVERWRITE;
 }
 Table::Result MemTable::Get(const std::string& row, const std::string& col, std::string* val) {
   pthread_mutex_lock(&lock_);
-  auto row_it = memtable_.find(row);
-  if (row_it == memtable_.end()) {
+  auto rowIt = memtable_.find(row);
+  if (rowIt == memtable_.end()) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  auto col_it = row_it->second.find(col);
-  if (col_it == row_it->second.end()) {
+  auto colIt = rowIt->second.find(col);
+  if (colIt == rowIt->second.end()) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  *val = col_it->second;
+  *val = colIt->second;
   pthread_mutex_unlock(&lock_);
   return SUCCESS;
 }
 Table::Result MemTable::Delete(const std::string& row, const std::string& col) {
   pthread_mutex_lock(&lock_);
-  auto row_it = memtable_.find(row);
-  if (row_it == memtable_.end()) {
+  auto rowIt = memtable_.find(row);
+  if (rowIt == memtable_.end()) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  auto col_it = row_it->second.find(col);
-  if (col_it == row_it->second.end()) {
+  auto colIt = rowIt->second.find(col);
+  if (colIt == rowIt->second.end()) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  row_it->second.erase(col_it);
+  rowIt->second.erase(colIt);
   pthread_mutex_unlock(&lock_);
   return SUCCESS;
 }

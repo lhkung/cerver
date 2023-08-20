@@ -5,7 +5,6 @@
 
 namespace Cerver {
 
-// Interface for Table.
 class Table {
 public:
   enum Result {

@@ -11,14 +11,14 @@ using std::vector;
 
 namespace Cerver {
 
-CommitLog::CommitLog(const std::string& tablename, const std::string& store_dir) : store_dir_(store_dir) {
-  mkdir(store_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  string path = store_dir + "/" + tablename + ".commitlog";
+CommitLog::CommitLog(const std::string& tableName, const std::string& storeDir) : storeDir_(storeDir) {
+  mkdir(storeDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  string path = storeDir + "/" + tableName + ".commitlog";
   logfd_ = open(path.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
 }
 
-CommitLog::CommitLog(const char* dir, char* logname) {
-  string path = string(dir) + "/" + string(logname);
+CommitLog::CommitLog(const char* dir, char* logName) {
+  string path = string(dir) + "/" + string(logName);
   logfd_ = open(path.c_str(), O_RDWR | O_APPEND);
 }
 
@@ -28,10 +28,10 @@ CommitLog::~CommitLog() {
 
 int CommitLog::LogPut(const std::string& row, const std::string& col, const std::string& val) {
 	CommitMetaData metadata;
-	metadata.row_len = row.length();
-	metadata.col_len = col.length();
+	metadata.rowLen = row.length();
+	metadata.colLen = col.length();
 	metadata.operation = PUT;
-	metadata.val_len = val.length();
+	metadata.valLen = val.length();
   string content = row + col + val;
 	write(logfd_, &metadata, sizeof(metadata));
 	write(logfd_, content.c_str(), content.length());
@@ -40,10 +40,10 @@ int CommitLog::LogPut(const std::string& row, const std::string& col, const std:
 
 int CommitLog::LogDelete(const std::string &row, const std::string &col) {
 	CommitMetaData metadata;
-	metadata.row_len = row.length();
-	metadata.col_len = col.length();
+	metadata.rowLen = row.length();
+	metadata.colLen = col.length();
 	metadata.operation = DELETE;
-	metadata.val_len = 6;
+	metadata.valLen = 6;
 	string content = row + col + "DELETE";
 	write(logfd_, &metadata, sizeof(metadata));
   write(logfd_, content.c_str(), content.length());
@@ -54,28 +54,28 @@ int CommitLog::ReadNextCommit(string* row,
                               string* col, 
                               string* val) {
   CommitMetaData metadata;                            
-  unsigned long bytes_read = read(logfd_, &metadata, sizeof(metadata));
-	if (bytes_read < sizeof(metadata) || bytes_read <= 0) {
+  unsigned long bytesRead = read(logfd_, &metadata, sizeof(metadata));
+	if (bytesRead < sizeof(metadata) || bytesRead <= 0) {
 		return -1;
 	}
-  vector<char> buf = vector<char>(metadata.row_len);
-  bytes_read = read(logfd_, buf.data(), metadata.row_len);
-  if (bytes_read < metadata.row_len) {
+  vector<char> buf = vector<char>(metadata.rowLen);
+  bytesRead = read(logfd_, buf.data(), metadata.rowLen);
+  if (bytesRead < metadata.rowLen) {
 		return -1;
 	}
-  *row = string(buf.data(), metadata.row_len);
-  buf = vector<char>(metadata.col_len);
-  bytes_read = read(logfd_, buf.data(), metadata.col_len);
-  if (bytes_read < metadata.col_len) {
+  *row = string(buf.data(), metadata.rowLen);
+  buf = vector<char>(metadata.colLen);
+  bytesRead = read(logfd_, buf.data(), metadata.colLen);
+  if (bytesRead < metadata.colLen) {
 		return -1;
 	}
-  *col = string(buf.data(), metadata.col_len);
-  buf = vector<char>(metadata.val_len);
-  bytes_read = read(logfd_, buf.data(), metadata.val_len);
-  if (bytes_read < metadata.val_len) {
+  *col = string(buf.data(), metadata.colLen);
+  buf = vector<char>(metadata.valLen);
+  bytesRead = read(logfd_, buf.data(), metadata.valLen);
+  if (bytesRead < metadata.valLen) {
 	  return -1;
   }
-  *val = string(buf.data(), metadata.val_len);
+  *val = string(buf.data(), metadata.valLen);
   return metadata.operation;
 }
 

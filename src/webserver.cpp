@@ -173,15 +173,15 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   dir = string(argv[optind + 1]);
-  Tabula tabula(dir);
+  unique_ptr<Tabula> tabula = std::make_unique<Tabula>(dir);
   if (background) {
     pid_t pid = 0;
     pid = fork();
     if (pid == 0) {
       server = std::make_unique<HttpServer>(32, 80);
-      //LoadFileToDatabase(dir, &tabula);
-      tabula.Recover("/Users/seankung/projects/cerver/assets/commitlogs");
-      DefineGet(&tabula);
+      //LoadFileToDatabase(dir, tabula.get());
+      tabula->Recover("/Users/seankung/projects/cerver/assets/commitlogs");
+      DefineGet(tabula.get());
       server->Run();
       exit(EXIT_SUCCESS);
     } else {
@@ -196,9 +196,9 @@ int main(int argc, char** argv) {
     }
   } else {
     server = std::make_unique<HttpServer>(32, 80);
-    //LoadFileToDatabase(dir, &tabula);
-    tabula.Recover("/Users/seankung/projects/cerver/assets/commitlogs");
-    DefineGet(&tabula);
+    //LoadFileToDatabase(dir, tabula.get());
+    tabula->Recover("/Users/seankung/projects/cerver/assets/commitlogs");
+    DefineGet(tabula.get());
     pid_t pid = getpid();
     int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
     write(fd, &pid, sizeof(pid_t));
