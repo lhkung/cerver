@@ -5,7 +5,8 @@ using std::unordered_map;
 
 namespace Cerver {
 
-MemTable::MemTable() {
+MemTable::MemTable() : MemTable(1024 * 1024 * 10) { }
+MemTable::MemTable(uint64_t capacity) : size_(0), capacity_(capacity) {
   pthread_mutex_init(&lock_, nullptr);
 }
 MemTable::~MemTable() {
@@ -20,10 +21,13 @@ Table::Result MemTable::Put(const std::string& row, const std::string& col, cons
   auto colIt = rowIt->second.find(col);
   if (colIt == rowIt->second.end()) {
     rowIt->second.emplace(string(col), string(val));
+    size_ += val.length();
     pthread_mutex_unlock(&lock_);
     return SUCCESS;
   }
+  size_ -= colIt->second.length();
   colIt->second = val;
+  size_ += val.length();
   pthread_mutex_unlock(&lock_);
   return OVERWRITE;
 }
@@ -55,9 +59,14 @@ Table::Result MemTable::Delete(const std::string& row, const std::string& col) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
+  size_ -= colIt->second.length();
   rowIt->second.erase(colIt);
   pthread_mutex_unlock(&lock_);
   return SUCCESS;
+}
+
+uint64_t MemTable::Size() {
+  return size_;
 }
 
 } // namespace Cerver
