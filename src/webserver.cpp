@@ -3,11 +3,118 @@
 #include <sys/stat.h>
 #include "httpserver.h"
 #include "utils.h"
-#include "routes.h"
+#include "tabula/tabula.h"
 
 using std::string;
 using std::unique_ptr;
 using namespace Cerver;
+
+static string dir;
+
+void LoadFileToDatabase(const string& dir, Tabula* tabula) {
+  HttpResponse res;
+  HttpServer::ReadFile(&res, dir + "/index.html");
+  tabula->Put("assets", "page", "index.html", res.Body());
+  HttpServer::ReadFile(&res, dir + "/poetry.html");
+  tabula->Put("assets", "page", "poetry.html", res.Body());
+  HttpServer::ReadFile(&res, dir + "/translated.html");
+  tabula->Put("assets", "page", "translated.html", res.Body());
+  HttpServer::ReadFile(&res, dir + "/map.html");
+  tabula->Put("assets", "page", "map.html", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/allegory.png");
+  tabula->Put("assets", "image", "allegory.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/bookshelf.png");
+  tabula->Put("assets", "image", "bookshelf.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/CA-Chinese.jpeg");
+  tabula->Put("assets", "image", "CA-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/CA-English.jpeg");
+  tabula->Put("assets", "image", "CA-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/favicon.png");
+  tabula->Put("assets", "image", "favicon.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/HNTDA-Chinese.jpeg");
+  tabula->Put("assets", "image", "HNTDA-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/HNTDA-English.jpeg");
+  tabula->Put("assets", "image", "HNTDA-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/HOAX-Chinese.jpeg");
+  tabula->Put("assets", "image", "HOAX-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/HOAX-English.jpeg");
+  tabula->Put("assets", "image", "HOAX-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/HST-Chinese.jpeg");
+  tabula->Put("assets", "image", "HST-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/HST-English.jpeg");
+  tabula->Put("assets", "image", "HST-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/kung.png");
+  tabula->Put("assets", "image", "kung.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/network.png");
+  tabula->Put("assets", "image", "network.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/programing.png");
+  tabula->Put("assets", "image", "programing.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/right-arrow.png");
+  tabula->Put("assets", "image", "right-arrow.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/TAW-Chinese.jpeg");
+  tabula->Put("assets", "image", "TAW-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/TAW-English.jpeg");
+  tabula->Put("assets", "image", "TAW-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/TGA-Chinese.jpeg");
+  tabula->Put("assets", "image", "TGA-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/TGA-English.jpeg");
+  tabula->Put("assets", "image", "TGA-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/translating.png");
+  tabula->Put("assets", "image", "translating.png", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/TTM-Chinese.jpeg");
+  tabula->Put("assets", "image", "TTM-Chinese.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/images/TTM-English.jpeg");
+  tabula->Put("assets", "image", "TTM-English.jpeg", res.Body());
+  HttpServer::ReadFile(&res, dir + "/css/style.css");
+  tabula->Put("assets", "css", "style.css", res.Body());
+}
+
+void DefineGet(Tabula* tabula) {
+  server->Get("/", [tabula](const HttpRequest& req, HttpResponse* res) {
+    tabula->Get("assets", "page", "index.html", res->BodyPtr());
+    res->UseBody();
+    return "";
+  });
+
+  server->Get("/poetry", [tabula](const HttpRequest& req, HttpResponse* res) {
+    tabula->Get("assets", "page", "poetry.html", res->BodyPtr());
+    res->UseBody();
+    return "";
+  });
+
+  server->Get("/translated", [tabula](const HttpRequest& req, HttpResponse* res) {
+    tabula->Get("assets", "page", "translated.html", res->BodyPtr());
+    res->UseBody();
+    return "";
+  });
+
+  server->Get("/travel", [tabula](const HttpRequest& req, HttpResponse* res) {
+    tabula->Get("assets", "page", "map.html", res->BodyPtr());
+    res->UseBody();
+    return "";
+  });
+
+  server->Get("/images/:imageFile", [tabula](const HttpRequest& req, HttpResponse* res) {
+    string image_file;
+    req.PathParam("imageFile", &image_file);
+    tabula->Get("assets", "image", image_file, res->BodyPtr());
+    res->UseBody();
+    return "";
+  });
+
+  server->Get("/CSS/:cssFile", [tabula](const HttpRequest& req, HttpResponse* res) {
+    string css_file;
+    req.PathParam("cssFile", &css_file);
+    tabula->Get("assets", "css", css_file, res->BodyPtr());
+    res->UseBody();
+    return "";
+  });
+
+  server->Get("/stats", [](const HttpRequest& req, HttpResponse* res) {
+    server->GetStats(req, res);
+    return "";
+  });
+}
 
 int main(int argc, char** argv) {
   int port = 80;
@@ -66,12 +173,15 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   dir = string(argv[optind + 1]);
+  Tabula tabula(dir);
   if (background) {
     pid_t pid = 0;
     pid = fork();
     if (pid == 0) {
       server = std::make_unique<HttpServer>(32, 80);
-      DefineGet();
+      //LoadFileToDatabase(dir, &tabula);
+      tabula.Recover("/Users/seankung/projects/cerver/assets/commitlogs");
+      DefineGet(&tabula);
       server->Run();
       exit(EXIT_SUCCESS);
     } else {
@@ -86,7 +196,9 @@ int main(int argc, char** argv) {
     }
   } else {
     server = std::make_unique<HttpServer>(32, 80);
-    DefineGet();
+    //LoadFileToDatabase(dir, &tabula);
+    tabula.Recover("/Users/seankung/projects/cerver/assets/commitlogs");
+    DefineGet(&tabula);
     pid_t pid = getpid();
     int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
     write(fd, &pid, sizeof(pid_t));

@@ -35,7 +35,7 @@ public:
   void Get(const std::string& route, Route lambda);
 
   static void SetErrCode(int status_code, HttpResponse* res);
-  static void ReadFile(const HttpRequest& req, HttpResponse* res, const std::string& path);
+  static void ReadFile(HttpResponse* res, const std::string& path);
   static std::string GetContentType(const std::string& path);
 
   class Stats {
@@ -74,7 +74,6 @@ public:
 static std::unique_ptr<HttpServer> server;
 
 } // end namespace Cerver
-
 
 #endif
 

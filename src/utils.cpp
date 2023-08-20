@@ -62,4 +62,35 @@ bool IsNumber(const string& str) {
   return true;
 }
 
+bool EndsWith(const string& str, const string& suffix) {
+  if (suffix.length() == 0) {
+    return true;
+  }
+  int i = str.length();
+  int j = suffix.length();
+  while (i >= 0 && j >= 0) {
+    if (str[i] != suffix[j]) {
+      break;
+    }
+    i--;
+    j--;
+  }
+  if (j == -1) {
+    return true;
+  }
+  return false;
+}
+
+string RemoveExt(const string& str) {
+  string ret = "";
+  for (int i = 0; i < str.length(); i++) {
+    if (str[i] != '.') {
+      ret += str[i];
+    } else {
+      break;
+    }
+  }
+  return ret;
+}
+
 }

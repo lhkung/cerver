@@ -16,7 +16,9 @@ void HttpResponse::SetContentType(const string& type) {PutHeader("Content-Type",
 int HttpResponse::StatusCode() const {return status_code_;}
 const std::string& HttpResponse::Reason() const {return reason_phrase_;}
 const string& HttpResponse::Body() const {return body_;}
+std::string* HttpResponse::BodyPtr() {return &body_;}
 bool HttpResponse::Written() const {return written_;}
+void HttpResponse::UseBody() {has_body_ = true;}
 bool HttpResponse::HasBody() const {return has_body_;}
 const std::unordered_map<std::string, std::string>& HttpResponse::Headers() const {return headers_;}
 void HttpResponse::write(const string& content) {

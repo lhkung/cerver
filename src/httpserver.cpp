@@ -61,7 +61,7 @@ HttpServer::HttpServer(int max_thread, int listen_port)
     log_(std::make_unique<Logger>("cerverlog", 1024 * 1024 * 1024)),
     listen_port_(listen_port),
     stat_()
-{ std::cout << "Constructed" << std::endl;}
+{ }
 
 HttpServer::~HttpServer() { }
 
@@ -346,7 +346,8 @@ void HttpServer::CollectQueryParam(HttpRequest* req) {
 		return;
 }
 
-void HttpServer::ReadFile(const HttpRequest& req, HttpResponse* res, const string& path) {
+void HttpServer::ReadFile(HttpResponse* res, const string& path) {
+  res->SetBody("");
   int file_fd = open(path.c_str(), O_RDONLY);
   if (file_fd == -1) {
     HttpServer::SetErrCode(404, res);

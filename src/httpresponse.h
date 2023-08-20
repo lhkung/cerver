@@ -23,6 +23,8 @@ public:
   int StatusCode() const;
   const std::string& Reason() const;
   const std::string& Body() const;
+  std::string* BodyPtr();
+  void UseBody();
   bool HasBody() const;
   const std::unordered_map<std::string, std::string>& Headers() const; 
 private:
