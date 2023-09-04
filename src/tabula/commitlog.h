@@ -22,11 +22,24 @@ namespace Cerver {
 
 class CommitLog {
 public:
-	CommitLog(const std::string& tableName, const std::string& storeDir);
-	CommitLog(const char* dir, char* logName);
+	CommitLog(
+    const std::string& tableName,
+    const std::string& storeDir
+  );
+	CommitLog(
+    const char* dir,
+    char* logName
+  );
 	~CommitLog();
-	int LogPut(const std::string& row, const std::string& col, const std::string& val);
-	int LogDelete(const std::string& row, const std::string& col);
+	int LogPut(
+    const std::string& row,
+    const std::string& col,
+    const std::string& val
+  );
+	int LogDelete(
+    const std::string& row,
+    const std::string& col
+  );
 	struct CommitMetaData {
 		uint32_t rowLen;
 		uint32_t colLen;
@@ -40,9 +53,11 @@ private:
 	// Returns 0 if commit is properly logged and is a PUT.
 	// Returns 1 if commit is properly logged and is a DELETE. In this case, val is undefined.
 	// Returns -1 if the end of log is reached.
-	int ReadNextCommit(std::string* row,
-                     std::string* col, 
-                     std::string* val);
+	int ReadNextCommit(
+    std::string* row,
+    std::string* col, 
+    std::string* val
+  );
   std::string storeDir_;
   int logfd_;
 };

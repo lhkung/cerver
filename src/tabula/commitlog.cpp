@@ -11,13 +11,19 @@ using std::vector;
 
 namespace Cerver {
 
-CommitLog::CommitLog(const std::string& tableName, const std::string& storeDir) : storeDir_(storeDir) {
+CommitLog::CommitLog(
+  const std::string& tableName, 
+  const std::string& storeDir
+) : storeDir_(storeDir) {
   mkdir(storeDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   string path = storeDir + "/" + tableName + ".commitlog";
   logfd_ = open(path.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
 }
 
-CommitLog::CommitLog(const char* dir, char* logName) {
+CommitLog::CommitLog(
+  const char* dir,
+  char* logName
+) {
   string path = string(dir) + "/" + string(logName);
   logfd_ = open(path.c_str(), O_RDWR | O_APPEND);
 }
@@ -26,7 +32,11 @@ CommitLog::~CommitLog() {
   close(logfd_);
 }
 
-int CommitLog::LogPut(const std::string& row, const std::string& col, const std::string& val) {
+int CommitLog::LogPut(
+  const std::string& row, 
+  const std::string& col, 
+  const std::string& val
+) {
 	CommitMetaData metadata;
 	metadata.rowLen = row.length();
 	metadata.colLen = col.length();
@@ -38,7 +48,10 @@ int CommitLog::LogPut(const std::string& row, const std::string& col, const std:
 	return 0;
 }
 
-int CommitLog::LogDelete(const std::string &row, const std::string &col) {
+int CommitLog::LogDelete(
+  const std::string &row,
+  const std::string &col
+) {
 	CommitMetaData metadata;
 	metadata.rowLen = row.length();
 	metadata.colLen = col.length();
@@ -50,9 +63,11 @@ int CommitLog::LogDelete(const std::string &row, const std::string &col) {
 	return 0;
 }
 
-int CommitLog::ReadNextCommit(string* row,
-                              string* col, 
-                              string* val) {
+int CommitLog::ReadNextCommit(
+  string* row,
+  string* col, 
+  string* val
+) {
   CommitMetaData metadata;                            
   unsigned long bytesRead = read(logfd_, &metadata, sizeof(metadata));
 	if (bytesRead < sizeof(metadata) || bytesRead <= 0) {
