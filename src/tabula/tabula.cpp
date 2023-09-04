@@ -15,7 +15,7 @@ Tabula::Tabula(const string& dir) : dir_(dir) {
 Tabula::~Tabula() {
 
 }
-Table::Result Tabula::Put(
+int Tabula::Put(
   const std::string& tab, 
   const std::string& row, 
   const std::string& col, 
@@ -31,7 +31,7 @@ Table::Result Tabula::Put(
   return tabIt->second->Put(row, col, val);
 }
 
-Table::Result Tabula::Get(
+int Tabula::Get(
   const std::string& tab, 
   const std::string& row, 
   const std::string& col, 
@@ -39,12 +39,12 @@ Table::Result Tabula::Get(
 ) {
   auto tabIt = tables_.find(tab);
   if (tabIt == tables_.end()) {
-    return Table::NOT_FOUND;
+    return NOT_FOUND;
   }
   return tabIt->second->Get(row, col, val);
 }
 
-Table::Result Tabula::Delete(
+int Tabula::Delete(
   const std::string& tab, 
   const std::string& row, 
   const std::string& col
@@ -52,7 +52,7 @@ Table::Result Tabula::Delete(
   auto tabIt = tables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
   if (tabIt == tables_.end()) {
-    return Table::NOT_FOUND;
+    return NOT_FOUND;
   }
   commitIt->second->LogDelete(row, col);
   return tabIt->second->Delete(row, col);
