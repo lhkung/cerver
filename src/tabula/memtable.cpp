@@ -12,7 +12,11 @@ MemTable::MemTable(uint64_t capacity) : size_(0), capacity_(capacity) {
 MemTable::~MemTable() {
   pthread_mutex_destroy(&lock_);
 }
-Table::Result MemTable::Put(const std::string& row, const std::string& col, const std::string& val) {
+Table::Result MemTable::Put(
+  const std::string& row, 
+  const std::string& col, 
+  const std::string& val
+) {
   pthread_mutex_lock(&lock_);
   auto rowIt = memtable_.find(row);
   if (rowIt == memtable_.end()) {
@@ -31,7 +35,12 @@ Table::Result MemTable::Put(const std::string& row, const std::string& col, cons
   pthread_mutex_unlock(&lock_);
   return OVERWRITE;
 }
-Table::Result MemTable::Get(const std::string& row, const std::string& col, std::string* val) {
+
+Table::Result MemTable::Get(
+  const std::string& row, 
+  const std::string& col,
+  std::string* val
+) {
   pthread_mutex_lock(&lock_);
   auto rowIt = memtable_.find(row);
   if (rowIt == memtable_.end()) {
@@ -47,7 +56,11 @@ Table::Result MemTable::Get(const std::string& row, const std::string& col, std:
   pthread_mutex_unlock(&lock_);
   return SUCCESS;
 }
-Table::Result MemTable::Delete(const std::string& row, const std::string& col) {
+
+Table::Result MemTable::Delete(
+  const std::string& row,
+  const std::string& col
+) {
   pthread_mutex_lock(&lock_);
   auto rowIt = memtable_.find(row);
   if (rowIt == memtable_.end()) {
