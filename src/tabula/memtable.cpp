@@ -5,8 +5,14 @@ using std::unordered_map;
 
 namespace Cerver {
 
-MemTable::MemTable() : MemTable(1024 * 1024 * 10) { }
-MemTable::MemTable(uint64_t capacity) : size_(0), capacity_(capacity) {
+MemTable::MemTable(const string& name) : MemTable(name, MEMTABLE_DEFAULT_CAPACITY) { }
+MemTable::MemTable(
+  const string& name, 
+  const uint64_t capacity
+) : name_(name),
+    size_(0), 
+    capacity_(capacity
+) {
   pthread_mutex_init(&lock_, nullptr);
 }
 MemTable::~MemTable() {
