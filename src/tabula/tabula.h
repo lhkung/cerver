@@ -13,19 +13,19 @@ class Tabula {
   public:
     Tabula(const std::string& dir);
     ~Tabula();
-    Table::Result Put(
+    int Put(
       const std::string& tab, 
       const std::string& row, 
       const std::string& col, 
       const std::string& val
     );
-    Table::Result Get(
+    int Get(
       const std::string& tab, 
       const std::string& row, 
       const std::string& col, 
       std::string* val
     );
-    Table::Result Delete(
+    int Delete(
       const std::string& tab, 
       const std::string& row, 
       const std::string& col
