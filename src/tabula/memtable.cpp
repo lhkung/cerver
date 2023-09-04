@@ -12,7 +12,7 @@ MemTable::MemTable(uint64_t capacity) : size_(0), capacity_(capacity) {
 MemTable::~MemTable() {
   pthread_mutex_destroy(&lock_);
 }
-Table::Result MemTable::Put(
+int MemTable::Put(
   const std::string& row, 
   const std::string& col, 
   const std::string& val
@@ -36,7 +36,7 @@ Table::Result MemTable::Put(
   return OVERWRITE;
 }
 
-Table::Result MemTable::Get(
+int MemTable::Get(
   const std::string& row, 
   const std::string& col,
   std::string* val
@@ -57,7 +57,7 @@ Table::Result MemTable::Get(
   return SUCCESS;
 }
 
-Table::Result MemTable::Delete(
+int MemTable::Delete(
   const std::string& row,
   const std::string& col
 ) {

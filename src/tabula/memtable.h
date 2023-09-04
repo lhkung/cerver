@@ -12,22 +12,23 @@ public:
   MemTable();
   MemTable(uint64_t capacity);
   ~MemTable();
-  Result Put(
+  int Put(
     const std::string& row, 
     const std::string& col, 
     const std::string& val
   ) override;
-  Result Get(
+  int Get(
     const std::string& row,
     const std::string& col,
     std::string* val
   ) override;
-  Result Delete(
+  int Delete(
     const std::string& row, 
     const std::string& col
   ) override;
   uint64_t Size();
   uint64_t Capacity();
+  void Flush();
 
 private:
   pthread_mutex_t lock_;
