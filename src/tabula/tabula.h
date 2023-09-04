@@ -13,9 +13,23 @@ class Tabula {
   public:
     Tabula(const std::string& dir);
     ~Tabula();
-    Table::Result Put(const std::string& tab, const std::string& row, const std::string& col, const std::string& val);
-    Table::Result Get(const std::string& tab, const std::string& row, const std::string& col, std::string* val);
-    Table::Result Delete(const std::string& tab, const std::string& row, const std::string& col);
+    Table::Result Put(
+      const std::string& tab, 
+      const std::string& row, 
+      const std::string& col, 
+      const std::string& val
+    );
+    Table::Result Get(
+      const std::string& tab, 
+      const std::string& row, 
+      const std::string& col, 
+      std::string* val
+    );
+    Table::Result Delete(
+      const std::string& tab, 
+      const std::string& row, 
+      const std::string& col
+    );
     void Recover(const std::string& dir);
 
   private:

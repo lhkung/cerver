@@ -15,7 +15,12 @@ Tabula::Tabula(const string& dir) : dir_(dir) {
 Tabula::~Tabula() {
 
 }
-Table::Result Tabula::Put(const std::string& tab, const std::string& row, const std::string& col, const std::string& val) {
+Table::Result Tabula::Put(
+  const std::string& tab, 
+  const std::string& row, 
+  const std::string& col, 
+  const std::string& val
+) {
   auto tabIt = tables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
   if (tabIt == tables_.end()) {
@@ -26,7 +31,12 @@ Table::Result Tabula::Put(const std::string& tab, const std::string& row, const 
   return tabIt->second->Put(row, col, val);
 }
 
-Table::Result Tabula::Get(const std::string& tab, const std::string& row, const std::string& col, std::string* val) {
+Table::Result Tabula::Get(
+  const std::string& tab, 
+  const std::string& row, 
+  const std::string& col, 
+  std::string* val
+) {
   auto tabIt = tables_.find(tab);
   if (tabIt == tables_.end()) {
     return Table::NOT_FOUND;
@@ -34,7 +44,11 @@ Table::Result Tabula::Get(const std::string& tab, const std::string& row, const 
   return tabIt->second->Get(row, col, val);
 }
 
-Table::Result Tabula::Delete(const std::string& tab, const std::string& row, const std::string& col) {
+Table::Result Tabula::Delete(
+  const std::string& tab, 
+  const std::string& row, 
+  const std::string& col
+) {
   auto tabIt = tables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
   if (tabIt == tables_.end()) {
