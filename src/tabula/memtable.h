@@ -1,13 +1,17 @@
 #ifndef MEMTABLE_H_
 #define MEMTABLE_H_
 
+#define SUCCESS 0
+#define OVERWRITE 1
+#define NOT_FOUND -1
+
 #include <unordered_map>
 #include <pthread.h>
-#include "table.h"
+#include <string>
 
 namespace Cerver {
 
-class MemTable : public Table {
+class MemTable {
 public:
   MemTable();
   MemTable(uint64_t capacity);
@@ -16,16 +20,16 @@ public:
     const std::string& row, 
     const std::string& col, 
     const std::string& val
-  ) override;
+  );
   int Get(
     const std::string& row,
     const std::string& col,
     std::string* val
-  ) override;
+  );
   int Delete(
     const std::string& row, 
     const std::string& col
-  ) override;
+  );
   uint64_t Size();
   uint64_t Capacity();
   void Flush();

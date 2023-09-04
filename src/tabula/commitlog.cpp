@@ -94,7 +94,7 @@ int CommitLog::ReadNextCommit(
   return metadata.operation;
 }
 
-void CommitLog::Replay(Table* memtable) {
+void CommitLog::Replay(MemTable* memtable) {
   while (true) {
     string row;
     string col;

@@ -15,16 +15,17 @@ Tabula::Tabula(const string& dir) : dir_(dir) {
 Tabula::~Tabula() {
 
 }
+
 int Tabula::Put(
   const std::string& tab, 
   const std::string& row, 
   const std::string& col, 
   const std::string& val
 ) {
-  auto tabIt = tables_.find(tab);
+  auto tabIt = memtables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
-  if (tabIt == tables_.end()) {
-    tabIt = tables_.emplace(tab, std::make_unique<MemTable>()).first;
+  if (tabIt == memtables_.end()) {
+    tabIt = memtables_.emplace(tab, std::make_unique<MemTable>()).first;
     commitIt = commitlogs_.emplace(tab, std::make_unique<CommitLog>(tab, dir_ + "/commitlogs")).first;
   }
   commitIt->second->LogPut(row, col, val);
@@ -37,8 +38,8 @@ int Tabula::Get(
   const std::string& col, 
   std::string* val
 ) {
-  auto tabIt = tables_.find(tab);
-  if (tabIt == tables_.end()) {
+  auto tabIt = memtables_.find(tab);
+  if (tabIt == memtables_.end()) {
     return NOT_FOUND;
   }
   return tabIt->second->Get(row, col, val);
@@ -49,9 +50,9 @@ int Tabula::Delete(
   const std::string& row, 
   const std::string& col
 ) {
-  auto tabIt = tables_.find(tab);
+  auto tabIt = memtables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
-  if (tabIt == tables_.end()) {
+  if (tabIt == memtables_.end()) {
     return NOT_FOUND;
   }
   commitIt->second->LogDelete(row, col);
@@ -68,7 +69,7 @@ void Tabula::Recover(const std::string& dir) {
   while (entry != nullptr) {
     if (EndsWith(entry->d_name, ".commitlog")) {
       string tablename = RemoveExt(string(entry->d_name));
-      auto tableIt = tables_.emplace(tablename, std::make_unique<MemTable>()).first;
+      auto tableIt = memtables_.emplace(tablename, std::make_unique<MemTable>()).first;
       auto logIt = commitlogs_.emplace(tablename, std::make_unique<CommitLog>(dir.c_str(), entry->d_name)).first;
       logIt->second->Replay(tableIt->second.get());
     }

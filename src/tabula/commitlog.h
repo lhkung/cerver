@@ -47,7 +47,7 @@ public:
 		uint32_t valLen;
 	};
 	void Clear();
-	void Replay(Table* memtable);
+	void Replay(MemTable* memtable);
 private:
 	// Read the next commit from the log file.
 	// Returns 0 if commit is properly logged and is a PUT.

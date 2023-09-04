@@ -18,9 +18,6 @@ int MemTable::Put(
   const std::string& val
 ) {
   pthread_mutex_lock(&lock_);
-  if (size_ + val.length() > capacity_) {
-    Flush();
-  }
   auto rowIt = memtable_.find(row);
   if (rowIt == memtable_.end()) {
     rowIt = memtable_.emplace(string(row), unordered_map<string, string>()).first;

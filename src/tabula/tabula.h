@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include "table.h"
+#include "memtable.h"
 #include "commitlog.h"
 
 namespace Cerver {
@@ -34,7 +34,7 @@ class Tabula {
 
   private:
     std::string dir_;
-    std::unordered_map<std::string, std::unique_ptr<Table> > tables_;
+    std::unordered_map<std::string, std::unique_ptr<MemTable> > memtables_;
     std::unordered_map<std::string, std::unique_ptr<CommitLog> > commitlogs_;
 };
 
