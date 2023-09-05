@@ -26,12 +26,14 @@ public:
   
   // 4 bytes: row name length
   // n bytes: row name
+  // 4 bytes: number of columns
   // Repeated:
   // 4 bytes: col name length
   // 4 bytes: col value length
   // n bytes: col name
   // n bytes: col value
   std::string Serialize();
+  const std::string& Name();
 private:
   std::string name_;
   std::unordered_map<std::string, std::string> columns_;

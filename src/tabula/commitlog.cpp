@@ -16,7 +16,7 @@ CommitLog::CommitLog(
   const std::string& storeDir
 ) : storeDir_(storeDir) {
   mkdir(storeDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  string path = storeDir + "/" + tableName + ".commitlog";
+  string path = storeDir + "/" + tableName + COMMMIT_LOG_FILE_EXT;
   logfd_ = open(path.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
 }
 

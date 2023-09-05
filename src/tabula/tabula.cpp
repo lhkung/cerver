@@ -26,7 +26,7 @@ int Tabula::Put(
   auto commitIt = commitlogs_.find(tab);
   if (memtabIt == memtables_.end()) {
     memtabIt = memtables_.emplace(tab, std::make_unique<MemTable>(tab)).first;
-    commitIt = commitlogs_.emplace(tab, std::make_unique<CommitLog>(tab, dir_ + "/commitlogs")).first;
+    commitIt = commitlogs_.emplace(tab, std::make_unique<CommitLog>(tab, dir_ + "/tabula-data")).first;
   } else {
     Flush(memtabIt->second.get());
   }
@@ -69,7 +69,7 @@ void Tabula::Recover(const std::string& dir) {
   }
   struct dirent* entry = readdir(dirPtr);
   while (entry != nullptr) {
-    if (EndsWith(entry->d_name, ".commitlog")) {
+    if (EndsWith(entry->d_name, COMMMIT_LOG_FILE_EXT)) {
       string tablename = RemoveExt(string(entry->d_name));
       auto tableIt = memtables_.emplace(tablename, std::make_unique<MemTable>(tablename)).first;
       auto logIt = commitlogs_.emplace(tablename, std::make_unique<CommitLog>(dir.c_str(), entry->d_name)).first;
@@ -81,7 +81,7 @@ void Tabula::Recover(const std::string& dir) {
 }
 
 void Tabula::Flush(MemTable* memtable) {
-  memtable->Flush();
+  memtable->Flush(dir_ + "/tabula-data", 16);
   auto commitLogIt = commitlogs_.find(memtable->Name());
   if (commitLogIt == commitlogs_.end()) {
     return;

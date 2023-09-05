@@ -2,6 +2,7 @@
 #define COMMIT_LOG_H_
 #define PUT 0
 #define DELETE 1
+#define COMMMIT_LOG_FILE_EXT ".cl"
 
 #include <string>
 #include "memtable.h"

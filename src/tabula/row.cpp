@@ -46,8 +46,11 @@ string Row::Serialize() {
   std::stringstream ss;
   uint32_t rowNameLen = static_cast<uint32_t>(name_.length());
   char* rowNameLenPtr = reinterpret_cast<char*>(&rowNameLen);
+  uint32_t numCols = static_cast<uint32_t>(columns_.size());
+  char* numColsPtr = reinterpret_cast<char*>(&numCols);
   ss.write(rowNameLenPtr, sizeof(uint32_t));
   ss.write(name_.c_str(), rowNameLen);
+  ss.write(numColsPtr, sizeof(uint32_t));
   for (auto it = columns_.begin(); it != columns_.end(); it++) {
     uint32_t colNameLen = static_cast<uint32_t>(it->first.length());
     uint32_t valLen = static_cast<uint32_t>(it->second.length());
@@ -61,6 +64,9 @@ string Row::Serialize() {
   return ss.str();
 }
 
+const std::string &Row::Name() {
+  return name_;
+}
 
 
 } // namespace Cerver

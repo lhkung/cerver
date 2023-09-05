@@ -1,3 +1,5 @@
+#include <fcntl.h>
+#include <unistd.h>
 #include "memtable.h"
 
 using std::string;
@@ -11,8 +13,7 @@ MemTable::MemTable(
   const uint64_t capacity
 ) : name_(name),
     size_(0), 
-    capacity_(capacity
-) {
+    capacity_(capacity) {
   pthread_mutex_init(&lock_, nullptr);
 }
 MemTable::~MemTable() {
@@ -76,10 +77,25 @@ const string& MemTable::Name () {
   return name_;
 }
 
-void MemTable::Flush() {
+void MemTable::Flush(const string& dir, uint32_t indexFreq) {
+  string ssTablePath = dir + "/" + name_ + ".sst";
+  string indexPath = dir + "/" + name_ + ".ssx";
+  int ssTableFd = open(ssTablePath.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
+  int indexFd = open(indexPath.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
+  uint64_t offset = 0;
+  uint32_t buildIndex = 0;
   for (auto it = rows_.begin(); it != rows_.end(); it++) {
     string serializedRow = it->second->Serialize();
+    write(ssTableFd, serializedRow.c_str(), serializedRow.length());
+    if (buildIndex++ % indexFreq == 0) {
+      uint32_t rowNameLen = static_cast<uint32_t>(it->second->Name().length());
+      write(indexFd, &rowNameLen, sizeof(rowNameLen));
+      write(indexFd, it->second->Name().c_str(), rowNameLen);
+      write(indexFd, &offset, rowNameLen);
+    }
+    offset += serializedRow.length();
   }
+  close(ssTableFd);
 }
 
 } // namespace Cerver

@@ -36,7 +36,7 @@ public:
   uint64_t Size();
   uint64_t Capacity();
   const std::string& Name();
-  void Flush();
+  void Flush(const string& dir, uint32_t indexFreq);
 
 private:
   std::string name_;
