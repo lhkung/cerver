@@ -36,7 +36,7 @@ class Tabula {
     std::string dir_;
     std::unordered_map<std::string, std::unique_ptr<MemTable> > memtables_;
     std::unordered_map<std::string, std::unique_ptr<CommitLog> > commitlogs_;
-    void Flush(MemTable* memtableIt);
+    void Flush(MemTable* memtable);
 };
 
 } // Cerver

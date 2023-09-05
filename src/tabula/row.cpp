@@ -12,6 +12,7 @@ int Row::Put(
   const std::string& col, 
   const std::string& val
 ) {
+  lastUpdated_ = time(0);
   auto it = columns_.find(col);
   if (it == columns_.end()) {
     it = columns_.emplace(col, val).first;
@@ -38,6 +39,7 @@ int Row::Delete(const std::string& col) {
    if (it == columns_.end()) {
     return NOT_FOUND;
   }
+  lastUpdated_ = time(0);
   columns_.erase(it);
   return SUCCESS;
 }
@@ -51,6 +53,9 @@ string Row::Serialize() {
   ss.write(rowNameLenPtr, sizeof(uint32_t));
   ss.write(name_.c_str(), rowNameLen);
   ss.write(numColsPtr, sizeof(uint32_t));
+  uint64_t lastUpdated = static_cast<uint64_t>(lastUpdated_);
+  char* timePtr = reinterpret_cast<char*>(&lastUpdated);
+  ss.write(timePtr, sizeof(uint64_t));
   for (auto it = columns_.begin(); it != columns_.end(); it++) {
     uint32_t colNameLen = static_cast<uint32_t>(it->first.length());
     uint32_t valLen = static_cast<uint32_t>(it->second.length());

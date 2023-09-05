@@ -27,6 +27,7 @@ public:
   // 4 bytes: row name length
   // n bytes: row name
   // 4 bytes: number of columns
+  // 8 bytes: last updated time
   // Repeated:
   // 4 bytes: col name length
   // 4 bytes: col value length
@@ -36,6 +37,7 @@ public:
   const std::string& Name();
 private:
   std::string name_;
+  time_t lastUpdated_;
   std::unordered_map<std::string, std::string> columns_;
 };
 
