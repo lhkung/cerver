@@ -24,22 +24,13 @@ int MemTable::Put(
   const std::string& val
 ) {
   pthread_mutex_lock(&lock_);
-  auto rowIt = memtable_.find(row);
-  if (rowIt == memtable_.end()) {
-    rowIt = memtable_.emplace(string(row), unordered_map<string, string>()).first;
+  auto rowIt = rows_.find(row);
+  if (rowIt == rows_.end()) {
+    rowIt = rows_.emplace(row, Row(row)).first;
   }
-  auto colIt = rowIt->second.find(col);
-  if (colIt == rowIt->second.end()) {
-    rowIt->second.emplace(string(col), string(val));
-    size_ += val.length();
-    pthread_mutex_unlock(&lock_);
-    return SUCCESS;
-  }
-  size_ -= colIt->second.length();
-  colIt->second = val;
-  size_ += val.length();
+  int res = rowIt->second.Put(col, val);
   pthread_mutex_unlock(&lock_);
-  return OVERWRITE;
+  return res;
 }
 
 int MemTable::Get(
@@ -48,19 +39,14 @@ int MemTable::Get(
   std::string* val
 ) {
   pthread_mutex_lock(&lock_);
-  auto rowIt = memtable_.find(row);
-  if (rowIt == memtable_.end()) {
+  auto rowIt = rows_.find(row);
+  if (rowIt == rows_.end()) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  auto colIt = rowIt->second.find(col);
-  if (colIt == rowIt->second.end()) {
-    pthread_mutex_unlock(&lock_);
-    return NOT_FOUND;
-  }
-  *val = colIt->second;
+  int res = rowIt->second.Get(col, val);
   pthread_mutex_unlock(&lock_);
-  return SUCCESS;
+  return res;
 }
 
 int MemTable::Delete(
@@ -68,20 +54,14 @@ int MemTable::Delete(
   const std::string& col
 ) {
   pthread_mutex_lock(&lock_);
-  auto rowIt = memtable_.find(row);
-  if (rowIt == memtable_.end()) {
+  auto rowIt = rows_.find(row);
+  if (rowIt == rows_.end()) {
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  auto colIt = rowIt->second.find(col);
-  if (colIt == rowIt->second.end()) {
-    pthread_mutex_unlock(&lock_);
-    return NOT_FOUND;
-  }
-  size_ -= colIt->second.length();
-  rowIt->second.erase(colIt);
+  int res = rowIt->second.Delete(col);
   pthread_mutex_unlock(&lock_);
-  return SUCCESS;
+  return res;
 }
 
 uint64_t MemTable::Size() {
@@ -94,6 +74,12 @@ uint64_t MemTable::Capacity() {
 
 const string& MemTable::Name () {
   return name_;
+}
+
+void MemTable::Flush() {
+  for (auto it = rows_.begin(); it != rows_.end(); it++) {
+
+  }
 }
 
 } // namespace Cerver

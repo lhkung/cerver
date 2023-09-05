@@ -1,7 +1,7 @@
 mkdir = mkdir
 bindir = ./bin
 rm = rm -r
-LIBRARY = $(bindir)/server.o $(bindir)/tcpconnection.o $(bindir)/threadpool.o $(bindir)/httprequest.o $(bindir)/httpresponse.o $(bindir)/utils.o $(bindir)/httpserver.o $(bindir)/memtable.o $(bindir)/commitlog.o $(bindir)/tabula.o
+LIBRARY = $(bindir)/server.o $(bindir)/tcpconnection.o $(bindir)/threadpool.o $(bindir)/httprequest.o $(bindir)/httpresponse.o $(bindir)/utils.o $(bindir)/httpserver.o $(bindir)/memtable.o $(bindir)/commitlog.o $(bindir)/tabula.o $(bindir)/row.o 
 TARGETS = $(LIBRARY) $(bindir)/helloworld $(bindir)/webserver
 all: $(bindir) $(TARGETS)
 clean:
@@ -28,6 +28,8 @@ $(bindir)/memtable.o: src/tabula/memtable.cpp
 $(bindir)/commitlog.o: src/tabula/commitlog.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
 $(bindir)/tabula.o: src/tabula/tabula.cpp
+	g++ -Wall -std=c++17 -c $^ -o $@
+$(bindir)/row.o: src/tabula/row.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
 $(bindir)/helloworld: src/helloworld.cpp $(LIBRARY)
 	g++ -Wall -std=c++17 -lpthread $^ -o $@

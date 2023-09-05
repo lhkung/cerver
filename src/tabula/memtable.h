@@ -6,9 +6,10 @@
 #define NOT_FOUND -1
 #define MEMTABLE_DEFAULT_CAPACITY 1024 * 1024 * 10 // 10 MB
 
-#include <unordered_map>
+#include <map>
 #include <pthread.h>
 #include <string>
+#include "row.h"
 
 namespace Cerver {
 
@@ -33,13 +34,13 @@ public:
   );
   uint64_t Size();
   uint64_t Capacity();
+  const std::string& Name();
   void Flush();
-  const string& Name();
 
 private:
   std::string name_;
   pthread_mutex_t lock_;
-  std::unordered_map<std::string, std::unordered_map<std::string, std::string> > memtable_;
+  std::map<std::string, Row > rows_;
   uint64_t size_;
   uint64_t capacity_;
 };
