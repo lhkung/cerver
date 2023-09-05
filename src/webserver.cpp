@@ -179,8 +179,8 @@ int main(int argc, char** argv) {
     pid = fork();
     if (pid == 0) {
       server = std::make_unique<HttpServer>(32, 80);
-      //LoadFileToDatabase(dir, tabula.get());
-      tabula->Recover("/Users/seankung/projects/cerver/assets/commitlogs");
+      LoadFileToDatabase(dir, tabula.get());
+      // tabula->Recover("/Users/seankung/projects/cerver/assets/commitlogs");
       DefineGet(tabula.get());
       server->Run();
       exit(EXIT_SUCCESS);
@@ -196,8 +196,8 @@ int main(int argc, char** argv) {
     }
   } else {
     server = std::make_unique<HttpServer>(32, 80);
-    //LoadFileToDatabase(dir, tabula.get());
-    tabula->Recover("/Users/seankung/projects/cerver/assets/commitlogs");
+    LoadFileToDatabase(dir, tabula.get());
+    // tabula->Recover("/Users/seankung/projects/cerver/assets/commitlogs");
     DefineGet(tabula.get());
     pid_t pid = getpid();
     int fd = open("cerverlog/process.txt", O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);

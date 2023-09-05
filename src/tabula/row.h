@@ -23,6 +23,15 @@ public:
     std::string* val
   );
   int Delete(const std::string& col);
+  
+  // 4 bytes: row name length
+  // n bytes: row name
+  // Repeated:
+  // 4 bytes: col name length
+  // 4 bytes: col value length
+  // n bytes: col name
+  // n bytes: col value
+  std::string Serialize();
 private:
   std::string name_;
   std::unordered_map<std::string, std::string> columns_;

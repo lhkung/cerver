@@ -26,9 +26,9 @@ int MemTable::Put(
   pthread_mutex_lock(&lock_);
   auto rowIt = rows_.find(row);
   if (rowIt == rows_.end()) {
-    rowIt = rows_.emplace(row, Row(row)).first;
+    rowIt = rows_.emplace(row, std::make_unique<Row>(row)).first;
   }
-  int res = rowIt->second.Put(col, val);
+  int res = rowIt->second->Put(col, val);
   pthread_mutex_unlock(&lock_);
   return res;
 }
@@ -44,7 +44,7 @@ int MemTable::Get(
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  int res = rowIt->second.Get(col, val);
+  int res = rowIt->second->Get(col, val);
   pthread_mutex_unlock(&lock_);
   return res;
 }
@@ -59,7 +59,7 @@ int MemTable::Delete(
     pthread_mutex_unlock(&lock_);
     return NOT_FOUND;
   }
-  int res = rowIt->second.Delete(col);
+  int res = rowIt->second->Delete(col);
   pthread_mutex_unlock(&lock_);
   return res;
 }
@@ -78,7 +78,7 @@ const string& MemTable::Name () {
 
 void MemTable::Flush() {
   for (auto it = rows_.begin(); it != rows_.end(); it++) {
-
+    string serializedRow = it->second->Serialize();
   }
 }
 

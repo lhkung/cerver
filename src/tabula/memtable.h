@@ -9,6 +9,7 @@
 #include <map>
 #include <pthread.h>
 #include <string>
+#include <memory>
 #include "row.h"
 
 namespace Cerver {
@@ -40,7 +41,7 @@ public:
 private:
   std::string name_;
   pthread_mutex_t lock_;
-  std::map<std::string, Row > rows_;
+  std::map<std::string, std::unique_ptr<Row> > rows_;
   uint64_t size_;
   uint64_t capacity_;
 };
