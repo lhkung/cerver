@@ -22,14 +22,16 @@ int Tabula::Put(
   const std::string& col, 
   const std::string& val
 ) {
-  auto tabIt = memtables_.find(tab);
+  auto memtabIt = memtables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
-  if (tabIt == memtables_.end()) {
-    tabIt = memtables_.emplace(tab, std::make_unique<MemTable>()).first;
+  if (memtabIt == memtables_.end()) {
+    memtabIt = memtables_.emplace(tab, std::make_unique<MemTable>()).first;
     commitIt = commitlogs_.emplace(tab, std::make_unique<CommitLog>(tab, dir_ + "/commitlogs")).first;
+  } else {
+    Flush(memtabIt->second.get());
   }
   commitIt->second->LogPut(row, col, val);
-  return tabIt->second->Put(row, col, val);
+  return memtabIt->second->Put(row, col, val);
 }
 
 int Tabula::Get(
@@ -38,11 +40,11 @@ int Tabula::Get(
   const std::string& col, 
   std::string* val
 ) {
-  auto tabIt = memtables_.find(tab);
-  if (tabIt == memtables_.end()) {
+  auto memtabIt = memtables_.find(tab);
+  if (memtabIt == memtables_.end()) {
     return NOT_FOUND;
   }
-  return tabIt->second->Get(row, col, val);
+  return memtabIt->second->Get(row, col, val);
 }
 
 int Tabula::Delete(
@@ -50,13 +52,13 @@ int Tabula::Delete(
   const std::string& row, 
   const std::string& col
 ) {
-  auto tabIt = memtables_.find(tab);
+  auto memtabIt = memtables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
-  if (tabIt == memtables_.end()) {
+  if (memtabIt == memtables_.end()) {
     return NOT_FOUND;
   }
   commitIt->second->LogDelete(row, col);
-  return tabIt->second->Delete(row, col);
+  return memtabIt->second->Delete(row, col);
 }
 
 void Tabula::Recover(const std::string& dir) {
@@ -76,6 +78,15 @@ void Tabula::Recover(const std::string& dir) {
     entry = readdir(dirPtr);
   }
   closedir(dirPtr);
+}
+
+void Tabula::Flush(MemTable* memtable) {
+  memtable->Flush();
+  auto commitLogIt = commitlogs_.find(memtable->Name());
+  if (commitLogIt == commitlogs_.end()) {
+    return;
+  }
+  commitLogIt->second->Clear();
 }
 
 } // namespace Cerver

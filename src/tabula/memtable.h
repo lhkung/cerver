@@ -34,6 +34,7 @@ public:
   uint64_t Size();
   uint64_t Capacity();
   void Flush();
+  const string& Name();
 
 private:
   std::string name_;

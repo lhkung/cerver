@@ -92,4 +92,8 @@ uint64_t MemTable::Capacity() {
   return capacity_;
 }
 
+const string& MemTable::Name () {
+  return name_;
+}
+
 } // namespace Cerver
