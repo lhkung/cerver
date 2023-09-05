@@ -69,7 +69,7 @@ void HttpServer::Run() {
   running = true;
   PrepareToHandleSignal(SIGINT, HandleSignal);
   PrepareToHandleSignal(SIGUSR1, HandleSignal);
-  *log_ << GetTime() << "Server starts\n";
+  *log_ << Utils::GetTime() << "Server starts\n";
   int listen_fd = CreateListenSocket(listen_port_, 100);
   if (listen_fd == -1) {
     std::cout << "Failed to create listen socket" << std::endl;
@@ -91,12 +91,12 @@ void HttpServer::Run() {
       continue;
     }
     stat_.IncConn();
-    *log_ << GetTime() << "Connection from " << addr << ":" << port << "\n";
+    *log_ << Utils::GetTime() << "Connection from " << addr << ":" << port << "\n";
     unique_ptr<ThreadPool::Task> task = std::make_unique<HttpServerTask>(comm_fd, this);
     threadpool_->Dispatch(std::move(task));
   }
   threadpool_->KillThreads();
-  *log_ << GetTime() << "Server shut down\n";
+  *log_ << Utils::GetTime() << "Server shut down\n";
   std::cout << "Server shut down" << std::endl;
 }
 
@@ -120,7 +120,7 @@ void HttpServer::ThreadLoop(int comm_fd) {
     HttpResponse res;
     Route* route = nullptr;
     int req_status = PrepareRequest(header, &req, &conn, &route);
-    *log_ << GetTime() << req.Method() << " " << req.URI() << " " << req.Protocol() << "\n";
+    *log_ << Utils::GetTime() << req.Method() << " " << req.URI() << " " << req.Protocol() << "\n";
     stat_.IncReq();
     if (req_status == REQ_INVALID) {
       SetErrCode(404, &res);
@@ -149,22 +149,22 @@ void HttpServer::ThreadLoop(int comm_fd) {
   }
   conn.Close();
   stat_.DecConn();
-  *log_ << GetTime() << "Connection closed\n";
+  *log_ << Utils::GetTime() << "Connection closed\n";
 }
 
 int HttpServer::PrepareRequest(const string& header, HttpRequest* req, TCPConnection* conn, Route** route) {
   vector<string> lines;
-  int num_lines = Split(header, "\r\n", &lines);
+  int num_lines = Utils::Split(header, "\r\n", &lines);
   if (num_lines < 1) {
     return REQ_INVALID;
   }
   vector<string> first_line;
-  int num_tok = Split(lines[0], " ", &first_line);
+  int num_tok = Utils::Split(lines[0], " ", &first_line);
   if (num_tok < 3) {
     return REQ_INVALID;
   }
-  LowerCase(first_line[0]);
-  LowerCase(first_line[2]);
+  Utils::LowerCase(first_line[0]);
+  Utils::LowerCase(first_line[2]);
   req->SetMethod(first_line[0]);
   req->SetURI(first_line[1]);
   req->SetProtocol(first_line[2]);
@@ -175,13 +175,13 @@ int HttpServer::PrepareRequest(const string& header, HttpRequest* req, TCPConnec
   CollectQueryParam(req);
   for (uint i = 1; i < lines.size(); i++) {
     vector<string> kv;
-    int numElement = Split(lines[i], ":", &kv);
+    int numElement = Utils::Split(lines[i], ":", &kv);
     if (numElement < 2) {
       continue;
     }
-    LowerCase(kv[0]);
-    Trim(kv[0]);
-    Trim(kv[1]);
+    Utils::LowerCase(kv[0]);
+    Utils::Trim(kv[0]);
+    Utils::Trim(kv[1]);
     req->PutHeader(kv[0], kv[1]);
   }
   int len = req->ContentLength();
@@ -196,7 +196,7 @@ int HttpServer::PrepareRequest(const string& header, HttpRequest* req, TCPConnec
 }
 
 void HttpServer::SendResponse(HttpResponse* res, TCPConnection* conn, const string& body) {
-  *log_ << GetTime() << "Sending response header " << res->StatusCode() << "\n";
+  *log_ << Utils::GetTime() << "Sending response header " << res->StatusCode() << "\n";
   if (body.length() > 0) {
       res->PutHeader("Content-Length", std::to_string(body.length()));
   }
@@ -208,7 +208,7 @@ void HttpServer::SendResponse(HttpResponse* res, TCPConnection* conn, const stri
   if (body.length() > 0) {
     conn->Send(body);
   }
-  *log_ << GetTime() << "Response sent\n";
+  *log_ << Utils::GetTime() << "Response sent\n";
 }
 
 string HttpServer::GetContentType(const string& path) {
@@ -295,12 +295,12 @@ HttpServer::Route* HttpServer::CollectPathParam(HttpRequest* req)  {
     uri_parse = uri_parse.substr(0, question_mark);
   }
   vector<string> uri_split;
-  Split(uri_parse, "/", &uri_split);
+  Utils::Split(uri_parse, "/", &uri_split);
   const unordered_map<string, std::unique_ptr<Route> >& paths = routes_.at(req->Method());
   for (auto it = paths.begin(); it != paths.end(); it++) {
     bool match = true;
     vector<string> path_split;
-    Split(it->first, "/", &path_split);
+    Utils::Split(it->first, "/", &path_split);
     if (path_split.size() != uri_split.size()) {
       continue;
     }
@@ -329,11 +329,11 @@ void HttpServer::CollectQueryParam(HttpRequest* req) {
 			return;
 		}
     vector<string> queries;
-    Split(req->URI().substr(questionMark + 1), "&", &queries);
+    Utils::Split(req->URI().substr(questionMark + 1), "&", &queries);
 
 		for (string pair : queries) {
       vector<string> kv;
-			int numElements = Split(pair, "=", &kv);
+			int numElements = Utils::Split(pair, "=", &kv);
       if (numElements == 0) {
         continue;
       }

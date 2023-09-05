@@ -5,7 +5,7 @@
 using std::string;
 using std::unordered_map;
 
-namespace Cerver {
+namespace KVStore {
 
 MemTable::MemTable(const string& name) : MemTable(name, MEMTABLE_DEFAULT_CAPACITY) { }
 MemTable::MemTable(
@@ -98,4 +98,4 @@ void MemTable::Flush(const string& dir, uint32_t indexFreq) {
   close(ssTableFd);
 }
 
-} // namespace Cerver
+} // namespace KVStore

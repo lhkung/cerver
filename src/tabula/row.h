@@ -8,13 +8,23 @@
 #include <string>
 #include <unordered_map>
 
-namespace Cerver {
-  
+namespace KVStore {
+
 class Row {
 public:
+  struct RowMetaData {
+    uint32_t rowNameLen;
+    uint32_t numCols;
+    uint64_t lastUpdated;
+  };
   Row(const std::string& name);
+  Row(const std::string& name, time_t lastUpdated);
   ~Row();
   int Put(
+    const std::string& col, 
+    const std::string& val
+  );
+  int PutWithoutUpdateTime(
     const std::string& col, 
     const std::string& val
   );
@@ -23,25 +33,28 @@ public:
     std::string* val
   );
   int Delete(const std::string& col);
+  bool operator == (const Row& right) const;
+  bool operator != (const Row& right) const;
   
-  // 4 bytes: row name length
-  // n bytes: row name
-  // 4 bytes: number of columns
-  // 8 bytes: last updated time
+  // row name length
+  // number of columns
+  // last updated time
+  // row name
   // Repeated:
-  // 4 bytes: col name length
-  // 4 bytes: col value length
-  // n bytes: col name
-  // n bytes: col value
+  // col name length
+  // col value length
+  // col name
+  // col value
   std::string Serialize();
   const std::string& Name();
+  static std::unique_ptr<Row> Deserialize(int fd, uint64_t offset);
 private:
   std::string name_;
   time_t lastUpdated_;
   std::unordered_map<std::string, std::string> columns_;
 };
 
-} // namespace Cerver
+} // namespace KVStore
 
 
 #endif

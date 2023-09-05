@@ -7,7 +7,7 @@
 #include "memtable.h"
 #include "commitlog.h"
 
-namespace Cerver {
+namespace KVStore {
 
 class Tabula {
   public:
@@ -39,6 +39,6 @@ class Tabula {
     void Flush(MemTable* memtable);
 };
 
-} // Cerver
+} // KVStore
 
 #endif

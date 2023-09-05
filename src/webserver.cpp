@@ -8,10 +8,11 @@
 using std::string;
 using std::unique_ptr;
 using namespace Cerver;
+using namespace KVStore;
 
 static string dir;
 
-void LoadFileToDatabase(const string& dir, Tabula* tabula) {
+void LoadFileToDatabase(const string& dir, KVStore::Tabula* tabula) {
   HttpResponse res;
   HttpServer::ReadFile(&res, dir + "/index.html");
   tabula->Put("assets", "page", "index.html", res.Body());
@@ -69,7 +70,7 @@ void LoadFileToDatabase(const string& dir, Tabula* tabula) {
   tabula->Put("assets", "css", "style.css", res.Body());
 }
 
-void DefineGet(Tabula* tabula) {
+void DefineGet(KVStore::Tabula* tabula) {
   server->Get("/", [tabula](const HttpRequest& req, HttpResponse* res) {
     tabula->Get("assets", "page", "index.html", res->BodyPtr());
     res->UseBody();
@@ -123,7 +124,7 @@ int main(int argc, char** argv) {
   while ((c = getopt(argc, argv, "p:t")) != -1) {
     switch(c) {
       case 'p':
-        if (!Cerver::IsNumber(string(optarg))) {
+        if (!Utils::IsNumber(string(optarg))) {
           std::cout << "-p argument must be a number that specifies a port" << std::endl;
           return EXIT_FAILURE;
         }
@@ -173,7 +174,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   dir = string(argv[optind + 1]);
-  unique_ptr<Tabula> tabula = std::make_unique<Tabula>(dir);
+  unique_ptr<KVStore::Tabula> tabula = std::make_unique<KVStore::Tabula>(dir);
   if (background) {
     pid_t pid = 0;
     pid = fork();

@@ -7,7 +7,7 @@
 #include <string>
 #include "memtable.h"
 
-namespace Cerver {
+namespace KVStore {
 
 /*
  CommitLog file format:
@@ -63,6 +63,6 @@ private:
   int logfd_;
 };
 }
-// namespace Cerver
+// namespace KVStore
 
 #endif

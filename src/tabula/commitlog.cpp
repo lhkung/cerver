@@ -9,7 +9,7 @@
 using std::string;
 using std::vector;
 
-namespace Cerver {
+namespace KVStore {
 
 CommitLog::CommitLog(
   const std::string& tableName, 
@@ -69,7 +69,7 @@ int CommitLog::ReadNextCommit(
   string* val
 ) {
   CommitMetaData metadata;                            
-  unsigned long bytesRead = read(logfd_, &metadata, sizeof(metadata));
+  ssize_t bytesRead = read(logfd_, &metadata, sizeof(metadata));
 	if (bytesRead < sizeof(metadata) || bytesRead <= 0) {
 		return -1;
 	}
@@ -114,4 +114,4 @@ void CommitLog::Clear() {
 	ftruncate(logfd_, 0);
 }
 
-} // namespace Cerver
+} // namespace Tabula

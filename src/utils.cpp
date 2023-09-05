@@ -3,7 +3,7 @@
 using std::string;
 using std::vector;
 
-namespace Cerver {
+namespace Utils {
 
 void LowerCase(string& str) {
   for (size_t i = 0; i < str.length(); i++) {
@@ -93,4 +93,4 @@ string RemoveExt(const string& str) {
   return ret;
 }
 
-}
+} // Utils

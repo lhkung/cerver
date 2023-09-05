@@ -12,7 +12,7 @@
 #include <memory>
 #include "row.h"
 
-namespace Cerver {
+namespace KVStore {
 
 class MemTable {
 public:
@@ -36,7 +36,7 @@ public:
   uint64_t Size();
   uint64_t Capacity();
   const std::string& Name();
-  void Flush(const string& dir, uint32_t indexFreq);
+  void Flush(const std::string& dir, uint32_t indexFreq);
 
 private:
   std::string name_;
@@ -46,6 +46,6 @@ private:
   uint64_t capacity_;
 };
 
-} // namespace Cerver
+} // namespace KVStore
 
 #endif

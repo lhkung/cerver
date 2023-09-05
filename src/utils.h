@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace Cerver {
+namespace Utils {
 
 void LowerCase(std::string& str);
 void Trim(std::string& str);
@@ -14,5 +14,6 @@ bool IsNumber(const std::string& str);
 bool EndsWith(const std::string& str, const std::string& suffix);
 std::string RemoveExt(const std::string& str);
 
-} // namespace Cerver
+} // namespace Utils
+
 #endif

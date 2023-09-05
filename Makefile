@@ -27,9 +27,9 @@ $(bindir)/memtable.o: src/tabula/memtable.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
 $(bindir)/commitlog.o: src/tabula/commitlog.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
-$(bindir)/tabula.o: src/tabula/tabula.cpp
-	g++ -Wall -std=c++17 -c $^ -o $@
 $(bindir)/row.o: src/tabula/row.cpp
+	g++ -Wall -std=c++17 -c $^ -o $@
+$(bindir)/tabula.o: src/tabula/tabula.cpp
 	g++ -Wall -std=c++17 -c $^ -o $@
 $(bindir)/helloworld: src/helloworld.cpp $(LIBRARY)
 	g++ -Wall -std=c++17 -lpthread $^ -o $@

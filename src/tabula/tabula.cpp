@@ -6,7 +6,7 @@
 
 using std::string;
 
-namespace Cerver {
+namespace KVStore {
 
 Tabula::Tabula(const string& dir) : dir_(dir) {
 
@@ -69,8 +69,8 @@ void Tabula::Recover(const std::string& dir) {
   }
   struct dirent* entry = readdir(dirPtr);
   while (entry != nullptr) {
-    if (EndsWith(entry->d_name, COMMMIT_LOG_FILE_EXT)) {
-      string tablename = RemoveExt(string(entry->d_name));
+    if (Utils::EndsWith(entry->d_name, COMMMIT_LOG_FILE_EXT)) {
+      string tablename = Utils::RemoveExt(string(entry->d_name));
       auto tableIt = memtables_.emplace(tablename, std::make_unique<MemTable>(tablename)).first;
       auto logIt = commitlogs_.emplace(tablename, std::make_unique<CommitLog>(dir.c_str(), entry->d_name)).first;
       logIt->second->Replay(tableIt->second.get());
@@ -89,4 +89,4 @@ void Tabula::Flush(MemTable* memtable) {
   commitLogIt->second->Clear();
 }
 
-} // namespace Cerver
+} // namespace KVStore
