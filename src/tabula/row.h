@@ -37,15 +37,15 @@ public:
   bool operator == (const Row& right) const;
   bool operator != (const Row& right) const;
   
-  // row name length
-  // number of columns
-  // last updated time
-  // row name
+  // 4 bytes: row name length
+  // 4 bytes: number of columns
+  // 8 bytes: last updated time
+  // n bytes: row name
   // Repeated:
-  // col name length
-  // col value length
-  // col name
-  // col value
+  // 4 bytes: col name length
+  // 8 bytes: col value length
+  // n bytes: col name
+  // n bytes: col value
   std::string Serialize();
   const std::string& Name();
   time_t LastUpdateTime();
