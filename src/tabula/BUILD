@@ -6,7 +6,7 @@ cc_library(
 )
 cc_test(
   name = "row_test",
-  size = "medium",
+  size = "small",
   srcs = ["row_test.cpp"],
   deps = ["@com_google_googletest//:gtest_main", ":row"],
     visibility = ["//visibility:public"],

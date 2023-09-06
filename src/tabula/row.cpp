@@ -65,44 +65,64 @@ const std::string &Row::Name() {
   return name_;
 }
 
-string Row::Serialize() {
+std::string Row::Serialize() {
   std::ostringstream ss;
-  ss << name_.length() << " " << columns_.size() << " " << lastUpdated_ << " " << name_;
+  uint32_t rowNameLen = static_cast<uint32_t>(name_.length());
+  uint32_t colSize = static_cast<uint32_t>(columns_.size());
+  uint64_t lastUpdated = static_cast<uint64_t>(lastUpdated_);
+  ss.write(reinterpret_cast<char*>(&rowNameLen), sizeof(rowNameLen));
+  ss.write(reinterpret_cast<char*>(&colSize), sizeof(colSize));
+  ss.write(reinterpret_cast<char*>(&lastUpdated), sizeof(lastUpdated));
+  ss.write(name_.c_str(), name_.length());
   for (auto it = columns_.begin(); it != columns_.end(); it++) {
-    ss << it->first.length() << " " << it->second.length() << " " << it->first << it->second;
+    uint32_t colNameLen = it->first.length();
+    uint64_t colValLen = it->second.length();
+    ss.write(reinterpret_cast<char*>(&colNameLen), sizeof(colNameLen));
+    ss.write(reinterpret_cast<char*>(&colValLen), sizeof(colValLen));
+    ss.write(it->first.c_str(), it->first.length());
+    ss.write(it->second.c_str(), it->second.length());
   }
   return ss.str();
 }
 
 std::unique_ptr<Row> Row::Deserialize(int fd, uint64_t offset) {
-  FILE* fp = fdopen(fd, "r");
+  lseek(fd, offset, 0);
   RowMetaData metadata;
-  fscanf(fp, "%d %d %lld ", &metadata.rowNameLen, &metadata.numCols, &metadata.lastUpdated);
-  vector<char> buf = vector<char>(metadata.rowNameLen);
+  vector<char> buf = vector<char>(ROW_METADATA_BYTES);
+  ssize_t bytesRead = read(fd, buf.data(), ROW_METADATA_BYTES);
+  if (bytesRead != ROW_METADATA_BYTES || bytesRead <= 0) {
+    return std::unique_ptr<Row>(nullptr);
+	}
+  metadata.rowNameLen = *reinterpret_cast<uint32_t*>(buf.data());
+  metadata.numCols = *reinterpret_cast<uint32_t*>(buf.data() + sizeof(metadata.rowNameLen));
+  metadata.lastUpdated = *reinterpret_cast<uint64_t*>(buf.data() + sizeof(metadata.rowNameLen) + sizeof(metadata.numCols));
   buf = vector<char>(metadata.rowNameLen);
-  size_t bytesRead = fread(buf.data(), sizeof(char), metadata.rowNameLen, fp);
-  if (bytesRead < metadata.rowNameLen || bytesRead <= 0) {
+  bytesRead = read(fd, buf.data(), metadata.rowNameLen);
+  if (bytesRead != metadata.rowNameLen || bytesRead <= 0) {
     return std::unique_ptr<Row>(nullptr);
 	}
   std::unique_ptr<Row> row = std::make_unique<Row>(
     string(buf.data(), metadata.rowNameLen), 
     metadata.lastUpdated
   );
-  for (uint32_t i = 0 ; i < metadata.numCols; i++) {
-    uint32_t colNameLen;
-    uint64_t colValLen;
-    fscanf(fp, "%d %lld ", &colNameLen, &colValLen);
+  for (uint32_t i = 0; i < metadata.numCols; i++) {
+    buf = vector<char>(COL_METADATA_BYTES);
+    bytesRead = read(fd, buf.data(), COL_METADATA_BYTES);
+    if (bytesRead < COL_METADATA_BYTES || bytesRead <= 0) {
+      return std::unique_ptr<Row>(nullptr);
+	  }
+    uint32_t colNameLen = *reinterpret_cast<uint32_t*>(buf.data());
+    uint64_t colValLen = *reinterpret_cast<uint32_t*>(buf.data() + sizeof(colNameLen));
     buf = vector<char>(colNameLen + colValLen);
-    bytesRead = fread(buf.data(), sizeof(char), colNameLen + colValLen, fp);
-    if (bytesRead < colNameLen + colValLen || bytesRead <= 0) {
-    return std::unique_ptr<Row>(nullptr);
+    bytesRead = read(fd, buf.data(), colNameLen + colValLen);
+    if (bytesRead != colNameLen + colValLen || bytesRead <= 0) {
+     return std::unique_ptr<Row>(nullptr);
 	  }
     row->PutWithoutUpdateTime(
       string(buf.data(), colNameLen),
       string(buf.data() + colNameLen, colValLen)
     );
   }
-  fclose(fp);
   return row;
 }
 
@@ -130,6 +150,10 @@ bool Row::operator == (const Row& right) const {
 
 bool Row::operator != (const Row& right) const {
   return !operator == (right);
+}
+
+time_t Row::LastUpdateTime() {
+  return lastUpdated_;
 }
 
 

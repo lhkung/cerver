@@ -4,7 +4,8 @@
 #define SUCCESS 0
 #define OVERWRITE 1
 #define NOT_FOUND -1
-
+#define ROW_METADATA_BYTES 16
+#define COL_METADATA_BYTES 12
 #include <string>
 #include <unordered_map>
 
@@ -47,6 +48,7 @@ public:
   // col value
   std::string Serialize();
   const std::string& Name();
+  time_t LastUpdateTime();
   static std::unique_ptr<Row> Deserialize(int fd, uint64_t offset);
 private:
   std::string name_;
