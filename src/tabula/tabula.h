@@ -43,8 +43,12 @@ class Tabula {
 
   private:
     std::string dir_;
+    // One memtable per table
     std::unordered_map<std::string, std::unique_ptr<MemTable> > memtables_;
+    // One commit log per table
     std::unordered_map<std::string, std::unique_ptr<CommitLog> > commitlogs_;
+    // More than one SSIndex per table
+    // table name -> unique file name -> SSIndex
     std::unordered_map<std::string, std::map<std::string, std::unique_ptr<SSIndex> > > ssIndices_;
     void Flush(MemTable* memtable);
     bool isValidTableName(const std::string& tableName);

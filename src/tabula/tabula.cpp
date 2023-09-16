@@ -119,6 +119,7 @@ void Tabula::Flush(MemTable* memtable) {
     return;
   }
   commitLogIt->second->Clear();
+  ssIndex->Flush();
   PutSSIndexToMap(memtable->Name(), uniqueFileName, std::move(ssIndex));
 }
 

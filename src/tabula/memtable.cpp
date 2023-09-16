@@ -97,7 +97,6 @@ void MemTable::Flush(
   }
   close(ssTableFd);
   rows_.clear();
-  ssIndex->Flush();
 }
 
 } // namespace KVStore
