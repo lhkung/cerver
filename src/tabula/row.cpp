@@ -156,5 +156,4 @@ time_t Row::LastUpdateTime() {
   return lastUpdated_;
 }
 
-
 } // namespace KVStore

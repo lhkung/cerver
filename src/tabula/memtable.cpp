@@ -77,25 +77,27 @@ const string& MemTable::Name () {
   return name_;
 }
 
-void MemTable::Flush(const string& dir, uint32_t indexFreq) {
-  string ssTablePath = dir + "/" + name_ + ".sst";
-  string indexPath = dir + "/" + name_ + ".ssx";
+void MemTable::Flush(
+  const string& dir, 
+  const string& uniqueFileName,
+  uint32_t indexFreq, 
+  SSIndex* ssIndex
+) {
+  string ssTablePath = dir + "/" + uniqueFileName + ".sst";
   int ssTableFd = open(ssTablePath.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
-  int indexFd = open(indexPath.c_str(), O_RDWR | O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU);
   uint64_t offset = 0;
-  uint32_t buildIndex = 0;
+  uint32_t shouldAddIndexCounter = 0;
   for (auto it = rows_.begin(); it != rows_.end(); it++) {
     string serializedRow = it->second->Serialize();
     write(ssTableFd, serializedRow.c_str(), serializedRow.length());
-    if (buildIndex++ % indexFreq == 0) {
-      uint32_t rowNameLen = static_cast<uint32_t>(it->second->Name().length());
-      write(indexFd, &rowNameLen, sizeof(rowNameLen));
-      write(indexFd, it->second->Name().c_str(), rowNameLen);
-      write(indexFd, &offset, rowNameLen);
+    if (shouldAddIndexCounter++ % indexFreq == 0) {
+      ssIndex->AddIndex(it->first, offset);
     }
     offset += serializedRow.length();
   }
   close(ssTableFd);
+  rows_.clear();
+  ssIndex->Flush();
 }
 
 } // namespace KVStore

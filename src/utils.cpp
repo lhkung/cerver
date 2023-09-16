@@ -93,4 +93,12 @@ string RemoveExt(const string& str) {
   return ret;
 }
 
+string GetExt(const std::string& str) {
+  size_t dot = str.find(".");
+  if (dot != string::npos) {
+    return string(str, dot);
+  }
+  return "";
+}
+
 } // Utils

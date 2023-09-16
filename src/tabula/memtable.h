@@ -11,6 +11,7 @@
 #include <string>
 #include <memory>
 #include "row.h"
+#include "ssindex.h"
 
 namespace KVStore {
 
@@ -36,7 +37,12 @@ public:
   uint64_t Size();
   uint64_t Capacity();
   const std::string& Name();
-  void Flush(const std::string& dir, uint32_t indexFreq);
+  void Flush(
+    const std::string& dir,
+    const std::string& uniqueFileName,
+    uint32_t indexFreq,
+    SSIndex* ssIndex
+  );
 
 private:
   std::string name_;

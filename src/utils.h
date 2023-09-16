@@ -13,6 +13,7 @@ const char* GetTime();
 bool IsNumber(const std::string& str);
 bool EndsWith(const std::string& str, const std::string& suffix);
 std::string RemoveExt(const std::string& str);
+std::string GetExt(const std::string& str);
 
 } // namespace Utils
 

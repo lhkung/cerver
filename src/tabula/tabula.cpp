@@ -22,13 +22,18 @@ int Tabula::Put(
   const std::string& col, 
   const std::string& val
 ) {
+  if (!isValidTableName(tab)) {
+    return INVALID_REQUEST;
+  }
   auto memtabIt = memtables_.find(tab);
   auto commitIt = commitlogs_.find(tab);
   if (memtabIt == memtables_.end()) {
     memtabIt = memtables_.emplace(tab, std::make_unique<MemTable>(tab)).first;
     commitIt = commitlogs_.emplace(tab, std::make_unique<CommitLog>(tab, dir_ + "/tabula-data")).first;
   } else {
-    Flush(memtabIt->second.get());
+    if (memtabIt->second->Size() + val.length() > memtabIt->second->Capacity()) {
+      Flush(memtabIt->second.get());
+    }
   }
   commitIt->second->LogPut(row, col, val);
   return memtabIt->second->Put(row, col, val);
@@ -69,11 +74,28 @@ void Tabula::Recover(const std::string& dir) {
   }
   struct dirent* entry = readdir(dirPtr);
   while (entry != nullptr) {
-    if (Utils::EndsWith(entry->d_name, COMMMIT_LOG_FILE_EXT)) {
-      string tablename = Utils::RemoveExt(string(entry->d_name));
-      auto tableIt = memtables_.emplace(tablename, std::make_unique<MemTable>(tablename)).first;
-      auto logIt = commitlogs_.emplace(tablename, std::make_unique<CommitLog>(dir.c_str(), entry->d_name)).first;
+    SSFile ssFile;
+    ParseSSFileName(entry->d_name, &ssFile);
+    if (ssFile.ext == COMMMIT_LOG_FILE_EXT) {
+      // Replay commit log to populate memtable.
+      auto tableIt = memtables_.emplace(
+        ssFile.tableName, 
+        std::make_unique<MemTable>(ssFile.tableName)
+      ).first;
+      auto logIt = commitlogs_.emplace(
+        ssFile.tableName, 
+        std::make_unique<CommitLog>(dir.c_str(), ssFile.tableName)
+      ).first;
       logIt->second->Replay(tableIt->second.get());
+    } else if (ssFile.ext == SS_INDEX_FILE_EXT) {
+      PutSSIndexToMap(
+        ssFile.tableName, 
+        ssFile.tableName + "-" + ssFile.uuid,
+        std::make_unique<SSIndex>(
+          dir_ + "/tabula-data", 
+          ssFile.tableName + "-" + ssFile.uuid
+        )
+      );
     }
     entry = readdir(dirPtr);
   }
@@ -81,12 +103,70 @@ void Tabula::Recover(const std::string& dir) {
 }
 
 void Tabula::Flush(MemTable* memtable) {
-  memtable->Flush(dir_ + "/tabula-data", 16);
+  string uniqueFileName = MakeUniqueFileName(memtable->Name());
+  std::unique_ptr<SSIndex> ssIndex = std::make_unique<SSIndex>(
+    dir_ + "/tabula-data", 
+    uniqueFileName
+  );
+  memtable->Flush(
+    dir_ + "/tabula-data",
+    uniqueFileName, 
+    16,
+    nullptr
+  );
   auto commitLogIt = commitlogs_.find(memtable->Name());
   if (commitLogIt == commitlogs_.end()) {
     return;
   }
   commitLogIt->second->Clear();
+  PutSSIndexToMap(memtable->Name(), uniqueFileName, std::move(ssIndex));
+}
+
+string Tabula::MakeUniqueFileName(const string& tableName) {
+  return tableName + "-" + string(Utils::GetTime());
+}
+
+void Tabula::PutSSIndexToMap(
+  const string& tableName, 
+  const string& uniqueFileName, 
+  std::unique_ptr<SSIndex> ssIndex
+) {
+  auto tableIt = ssIndices_.find(tableName);
+  if (tableIt == ssIndices_.end()) {
+    tableIt = ssIndices_.emplace(tableName, std::map<string, std::unique_ptr<SSIndex> >()).first;
+  }
+  tableIt->second.insert({uniqueFileName, std::move(ssIndex)});
+}
+
+void Tabula::ParseSSFileName(const char* fileName, SSFile* ssFile) {
+  // Parse fileName into xxx-yyyy.zzz.
+  // Must receive a null terminated string 
+  size_t offsetHyphen;
+  size_t offsetDot;
+  size_t offset = 0;
+  for (const char* trv = fileName; *trv; trv++) {
+    if (*trv == '-') {
+      offsetHyphen = offset;
+    } else if (*trv == '.') {
+      offsetDot = offset;
+    }
+    offset++;
+  }
+  ssFile->tableName = string(fileName, offsetHyphen);
+  ssFile->uuid = string(fileName + offsetHyphen + 1, offsetDot - offsetHyphen - 1); // exclude hyphen
+  ssFile->ext = string(fileName + offsetDot); // include dot
+}
+
+bool Tabula::isValidTableName(const std::string& tableName) {
+  size_t dot = tableName.find(".");
+  if (dot != string::npos) {
+    return false;
+  }
+  size_t hypehn = tableName.find("-");
+  if (hypehn != string::npos) {
+    return false;
+  }
+  return true;
 }
 
 } // namespace KVStore
