@@ -1,13 +1,11 @@
 #ifndef ROW_H_
 #define ROW_H_
 
-#define SUCCESS 0
-#define OVERWRITE 1
-#define NOT_FOUND -1
 #define ROW_METADATA_BYTES 16
 #define COL_METADATA_BYTES 12
 #include <string>
 #include <unordered_map>
+#include "tabulaenums.h"
 
 namespace KVStore {
 

@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <iostream>
 #include <string>
+#include <fcntl.h>
 #include "tabula.h"
 #include "../utils.h"
 
@@ -8,13 +9,9 @@ using std::string;
 
 namespace KVStore {
 
-Tabula::Tabula(const string& dir) : dir_(dir) {
+Tabula::Tabula(const string& dir) : dir_(dir) {}
 
-}
-
-Tabula::~Tabula() {
-
-}
+Tabula::~Tabula() {}
 
 int Tabula::Put(
   const std::string& tab, 
@@ -47,9 +44,20 @@ int Tabula::Get(
 ) {
   auto memtabIt = memtables_.find(tab);
   if (memtabIt == memtables_.end()) {
+    // No such table
     return NOT_FOUND;
   }
-  return memtabIt->second->Get(row, col, val);
+  int ret = memtabIt->second->Get(row, col, val);
+  if (ret == SUCCESS) {
+    // Data is found in memtable.
+    return ret;
+  }
+  return GetFromDisk(
+    tab, 
+    row, 
+    col, 
+    val
+  );
 }
 
 int Tabula::Delete(
@@ -69,7 +77,6 @@ int Tabula::Delete(
 void Tabula::Recover(const std::string& dir) {
   DIR* dirPtr = opendir(dir.c_str());
   if (dirPtr == nullptr) {
-    std::cout << "Failed to open directory: " << dir <<  std::endl;
     return;
   }
   struct dirent* entry = readdir(dirPtr);
@@ -112,7 +119,7 @@ void Tabula::Flush(MemTable* memtable) {
     dir_ + "/tabula-data",
     uniqueFileName, 
     16,
-    nullptr
+    ssIndex.get()
   );
   auto commitLogIt = commitlogs_.find(memtable->Name());
   if (commitLogIt == commitlogs_.end()) {
@@ -132,11 +139,15 @@ void Tabula::PutSSIndexToMap(
   const string& uniqueFileName, 
   std::unique_ptr<SSIndex> ssIndex
 ) {
+  ssIndex->MemoizeStartAndEndRowFromFile();
   auto tableIt = ssIndices_.find(tableName);
   if (tableIt == ssIndices_.end()) {
-    tableIt = ssIndices_.emplace(tableName, std::map<string, std::unique_ptr<SSIndex> >()).first;
+    tableIt = ssIndices_.emplace(
+      tableName, 
+      std::make_unique<std::map<string, std::unique_ptr<SSIndex> > >()
+    ).first;
   }
-  tableIt->second.insert({uniqueFileName, std::move(ssIndex)});
+  tableIt->second->insert({uniqueFileName, std::move(ssIndex)});
 }
 
 void Tabula::ParseSSFileName(const char* fileName, SSFile* ssFile) {
@@ -168,6 +179,48 @@ bool Tabula::isValidTableName(const std::string& tableName) {
     return false;
   }
   return true;
+}
+
+int Tabula::GetFromDisk(
+  const std::string& tab, 
+  const std::string& row, 
+  const std::string& col, 
+  std::string* val
+) {
+  auto ssIndexIt = ssIndices_.find(tab);
+  if (ssIndexIt == ssIndices_.end()) {
+    return NOT_FOUND;
+  }
+  std::map<std::string, std::unique_ptr<SSIndex> >* ssindexSet = ssIndexIt->second.get();
+  std::unique_ptr<Row> selectedRow;
+  for (auto it = ssindexSet->begin(); it != ssindexSet->end(); it++) {
+    uint64_t offset;
+    if (it->second->GetOffset(row, &offset) == SUCCESS) {
+      // Read row into memory.
+      // Keep the row with the latest update time.
+      std::unique_ptr<Row> candidateRow = ReadRowFromSSTable(it->first + SS_INDEX_FILE_EXT, offset);
+      if (selectedRow.get() == nullptr) {
+        selectedRow = std::move(candidateRow);
+      } else if (candidateRow->LastUpdateTime() > selectedRow->LastUpdateTime()) {
+        selectedRow = std::move(candidateRow);
+      }
+    }
+  }
+  if (selectedRow.get() == nullptr) {
+    // If row is still nullptr, row does not exist in the table
+    return NOT_FOUND;
+  }
+  return selectedRow->Get(col, val);
+
+}
+
+std::unique_ptr<Row> Tabula::ReadRowFromSSTable(
+  const string& fileName,
+  uint64_t offset
+) {
+  string path = dir_ + "/" + fileName;
+  int fd = open(path.c_str(), O_RDONLY);
+  return Row::Deserialize(fd, offset); 
 }
 
 } // namespace KVStore

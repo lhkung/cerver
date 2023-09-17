@@ -1,9 +1,6 @@
 #ifndef MEMTABLE_H_
 #define MEMTABLE_H_
 
-#define SUCCESS 0
-#define OVERWRITE 1
-#define NOT_FOUND -1
 #define MEMTABLE_DEFAULT_CAPACITY 1024 * 1024 * 10 // 10 MB
 
 #include <map>
@@ -12,6 +9,7 @@
 #include <memory>
 #include "row.h"
 #include "ssindex.h"
+#include "tabulaenums.h"
 
 namespace KVStore {
 

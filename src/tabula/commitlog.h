@@ -6,6 +6,7 @@
 
 #include <string>
 #include "memtable.h"
+#include "tabulaenums.h"
 
 namespace KVStore {
 

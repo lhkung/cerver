@@ -45,7 +45,7 @@ int CommitLog::LogPut(
   string content = row + col + val;
 	write(logfd_, &metadata, sizeof(metadata));
 	write(logfd_, content.c_str(), content.length());
-	return 0;
+	return SUCCESS;
 }
 
 int CommitLog::LogDelete(
@@ -60,7 +60,7 @@ int CommitLog::LogDelete(
 	string content = row + col + "DELETE";
 	write(logfd_, &metadata, sizeof(metadata));
   write(logfd_, content.c_str(), content.length());
-	return 0;
+	return SUCCESS;
 }
 
 int CommitLog::ReadNextCommit(

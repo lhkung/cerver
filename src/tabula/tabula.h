@@ -1,12 +1,12 @@
 #ifndef TABULA_H_
 #define TABULA_H_
-#define INVALID_REQUEST 2
 
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include "memtable.h"
 #include "commitlog.h"
+#include "tabulaenums.h"
 
 namespace KVStore {
 
@@ -47,9 +47,9 @@ class Tabula {
     std::unordered_map<std::string, std::unique_ptr<MemTable> > memtables_;
     // One commit log per table
     std::unordered_map<std::string, std::unique_ptr<CommitLog> > commitlogs_;
-    // More than one SSIndex per table
+    // Might have more than one SSIndex per table
     // table name -> unique file name -> SSIndex
-    std::unordered_map<std::string, std::map<std::string, std::unique_ptr<SSIndex> > > ssIndices_;
+    std::unordered_map<std::string, std::unique_ptr<std::map<std::string, std::unique_ptr<SSIndex> > > > ssIndices_;
     void Flush(MemTable* memtable);
     bool isValidTableName(const std::string& tableName);
     std::string MakeUniqueFileName(const std::string& tableName); 
@@ -57,6 +57,16 @@ class Tabula {
       const std::string& tablerName,
       const std::string& uniqueFileName,
       std::unique_ptr<SSIndex> ssIndex
+    );
+    int GetFromDisk(
+      const std::string& tab, 
+      const std::string& row, 
+      const std::string& col, 
+      std::string* val
+    );
+    std::unique_ptr<Row> Tabula::ReadRowFromSSTable(
+      const std::string& fileName,
+      uint64_t offset
     );
 
 };
